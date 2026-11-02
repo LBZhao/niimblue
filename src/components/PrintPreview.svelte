@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { derived } from "svelte/store";
-  import { connectionState, printerClient, printerMeta } from "$/stores";
+  import { connectionState, connectedPrinterName, printerClient, printerMeta } from "$/stores";
   import * as effects from "$/utils/post_process";
   import {
     type EncodedImage,
@@ -27,6 +27,7 @@
   import { Toasts } from "$/utils/toasts";
   import { CustomCanvas } from "$/fabric-object/custom_canvas";
   import { FileUtils } from "$/utils/file_utils";
+  import { printDirectionForPrinter } from "$/utils/print_direction";
   import AppModal from "$/components/basic/AppModal.svelte";
 
   interface Props {
@@ -74,6 +75,9 @@
   let modalRef: AppModal;
 
   const disconnected = derived(connectionState, ($connectionState) => $connectionState !== "connected");
+  let effectivePrintDirection = $derived(
+    printDirectionForPrinter(labelProps.printDirection, $printerMeta, $connectedPrinterName),
+  );
 
   const labelTypeTranslationKey = (labelType: string): TranslationKey =>
     `preview.label_type.${labelType}` as TranslationKey;
@@ -153,7 +157,7 @@
         const encoded: EncodedImage = ImageEncoder.encodeCanvas(
           previewCanvas,
           opts.pageColor!,
-          labelProps.printDirection,
+          effectivePrintDirection,
         );
 
         await currentPrintTask.printPage(encoded, quantity);
@@ -230,7 +234,7 @@
     }
 
     if ($printerMeta !== undefined) {
-      const headSize = labelProps.printDirection == "left" ? previewCanvas.height : previewCanvas.width;
+      const headSize = effectivePrintDirection == "left" ? previewCanvas.height : previewCanvas.width;
       if (headSize > $printerMeta.printheadPixels) {
         offsetWarning += $tr("params.label.warning.width") + " ";
         offsetWarning += `(${headSize} > ${$printerMeta.printheadPixels})`;
@@ -415,7 +419,7 @@
       </button>
     {/if}
 
-    <canvas class="print-start-{labelProps.printDirection}" bind:this={previewCanvas}></canvas>
+    <canvas class="print-start-{effectivePrintDirection}" bind:this={previewCanvas}></canvas>
 
     {#if pagesTotal > 1}
       <button disabled={printState !== "idle"} class="btn w-100 fs-1" onclick={pageUp}>

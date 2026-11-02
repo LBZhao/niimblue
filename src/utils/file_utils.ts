@@ -146,15 +146,17 @@ export class FileUtils {
   }
 
   static makeExportedLabel(canvas: fabric.Canvas, labelProps: LabelProps, includeCsv: boolean): ExportedLabelTemplate {
-    const thumbnailBase64: string = canvas.toDataURL({
+    const thumbnailOptions = {
       width: canvas.width,
       height: canvas.height,
       left: 0,
       top: 0,
       multiplier: THUMBNAIL_HEIGHT / (canvas.height || 1),
       quality: THUMBNAIL_QUALITY,
-      format: "jpeg",
-    });
+      format: "jpeg" as const,
+    };
+    const thumbnailBase64: string =
+      canvas instanceof CustomCanvas ? canvas.withPhysicalGap(() => canvas.toDataURL(thumbnailOptions)) : canvas.toDataURL(thumbnailOptions);
 
     const tpl: ExportedLabelTemplate = {
       canvas: canvas.toJSON(),

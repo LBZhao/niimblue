@@ -1,6 +1,6 @@
 import * as fabric from "fabric";
 import { DEFAULT_LABEL_PROPS, GRID_SIZE } from "$/defaults";
-import type { LabelProps } from "$/types";
+import type { LabelProps, LabelShape } from "$/types";
 
 type LabelBounds = {
   startX: number;
@@ -15,8 +15,32 @@ type FoldInfo = {
   axis: "vertical" | "horizontal" | "none";
   points: number[];
   segments: FoldSegment[];
+  /** Reflection line for mirror flip. Copy anchors stay in `points`. */
+  flipAxis?: number;
+};
+type SplitPiece = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  shape: LabelShape;
+};
+type TwoPieceLayout = {
+  axis: "vertical" | "horizontal";
+  pieces: [SplitPiece, SplitPiece];
+  gap: number;
+  gapRect: { x: number; y: number; width: number; height: number };
+  flipAxis: number;
 };
 type MirrorInfo = { pos: fabric.Point; flip: boolean };
+type GapObject = fabric.FabricObject & { gapOffsetX?: number; gapOffsetY?: number };
+
+const extraGapProps = ["gapOffsetX", "gapOffsetY"];
+for (const prop of extraGapProps) {
+  if (!fabric.FabricObject.customProperties.includes(prop)) {
+    fabric.FabricObject.customProperties.push(prop);
+  }
+}
 
 export class CustomCanvas extends fabric.Canvas {
   private labelProps: LabelProps = DEFAULT_LABEL_PROPS;
@@ -29,6 +53,9 @@ export class CustomCanvas extends fabric.Canvas {
   private highlightMirror: boolean = true;
   private gridEnabled: boolean = false;
   private virtualZoomRatio: number = 1;
+  /** Thumbnail capture draws the real gap. The editor collapses it to a dashed line. */
+  private showPhysicalGap: boolean = false;
+  private gapSyncPaused: boolean = false;
   onZoomChange?: (zoom: number) => void;
 
   constructor(
@@ -38,6 +65,13 @@ export class CustomCanvas extends fabric.Canvas {
     super(el, options);
     this.setupZoomAndPan();
     this.preserveObjectStacking = true;
+    this.on("object:added", (e) => e.target && this.syncObjectGap(e.target));
+    this.on("object:modified", (e) => {
+      const target = e.target;
+      if (!target) return;
+      const objects = target instanceof fabric.ActiveSelection ? target.getObjects() : [target];
+      objects.forEach((obj) => this.syncObjectGap(obj));
+    });
   }
 
   private setupZoomAndPan() {
@@ -56,17 +90,21 @@ export class CustomCanvas extends fabric.Canvas {
       }
     });
 
-    const container = this.getElement().parentElement;
-    if (!container) return;
+    // Capture on the drawing surface so a two-finger pinch is handled before
+    // Fabric, including inside the Android WebView where the gesture never
+    // bubbles to the canvas container.
+    const surface = this.upperCanvasEl;
 
     let initialPinchDistance = 0;
     let initialZoom = 1;
     let lastMidPoint = { x: 0, y: 0 };
 
-    container.addEventListener(
+    surface.addEventListener(
         "touchstart",
         (e: TouchEvent) => {
           if (e.touches.length === 2) {
+            e.preventDefault();
+            e.stopPropagation();
             this.selection = false;
             this.discardActiveObject();
 
@@ -83,18 +121,17 @@ export class CustomCanvas extends fabric.Canvas {
               x: (touch1.clientX + touch2.clientX) / 2,
               y: (touch1.clientY + touch2.clientY) / 2,
             };
-          } else if (e.touches.length === 1) {
-
           }
         },
-        { passive: false },
+        { passive: false, capture: true },
     );
 
-    container.addEventListener(
+    surface.addEventListener(
         "touchmove",
         (e: TouchEvent) => {
           if (e.touches.length === 2) {
             e.preventDefault();
+            e.stopPropagation();
 
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
@@ -131,10 +168,13 @@ export class CustomCanvas extends fabric.Canvas {
             lastMidPoint = currentMidPoint;
           }
         },
-        { passive: false },
+        { passive: false, capture: true },
     );
 
     const stopTouch = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        initialPinchDistance = 0;
+      }
       if (e.touches.length === 0) {
         // If not adding this delay, it could happen that objects are selected after zooming/panning
         setTimeout(() => {
@@ -142,8 +182,8 @@ export class CustomCanvas extends fabric.Canvas {
         }, 10);
       }
     };
-    container.addEventListener("touchend", stopTouch);
-    container.addEventListener("touchcancel", stopTouch);
+    surface.addEventListener("touchend", stopTouch, { capture: true });
+    surface.addEventListener("touchcancel", stopTouch, { capture: true });
   }
 
   public virtualZoom(newZoom: number) {
@@ -157,6 +197,27 @@ export class CustomCanvas extends fabric.Canvas {
     );
     if (this.onZoomChange) {
       this.onZoomChange(this.virtualZoomRatio);
+    }
+    this.applyEditorClip();
+  }
+
+  /**
+   * Draw the real gray gap, then restore the editor view.
+   * Used for saved-label thumbnails.
+   */
+  withPhysicalGap<T>(draw: () => T): T {
+    this.gapSyncPaused = true;
+    this.showPhysicalGap = true;
+    try {
+      this.getObjects().forEach((obj) => this.expandObject(obj));
+      this.applyEditorClip();
+      this.renderAll();
+      return draw();
+    } finally {
+      this.showPhysicalGap = false;
+      this.gapSyncPaused = false;
+      this.syncEditorGap();
+      this.renderAll();
     }
   }
 
@@ -178,6 +239,7 @@ export class CustomCanvas extends fabric.Canvas {
 
   setLabelProps(value: LabelProps) {
     this.labelProps = value;
+    this.syncEditorGap();
     this.requestRenderAll();
   }
 
@@ -192,6 +254,150 @@ export class CustomCanvas extends fabric.Canvas {
   setGridEnabled(value: boolean) {
     this.gridEnabled = value;
     this.requestRenderAll();
+  }
+
+  /** Editor view pulls the two pieces together. Thumbnails keep the real gap. */
+  private layoutGapShift(): { axis: "vertical" | "horizontal"; gap: number } | null {
+    if (this.showPhysicalGap || !this.customBackground) return null;
+    const layout = this.getTwoPieceLayout();
+    if (!layout || !(layout.gap > 0)) return null;
+    return { axis: layout.axis, gap: layout.gap };
+  }
+
+  private displayLayout(): TwoPieceLayout | null {
+    const layout = this.getTwoPieceLayout();
+    if (!layout) return null;
+    const collapse = this.layoutGapShift();
+    if (!collapse) return layout;
+    const [a, b] = layout.pieces;
+    if (layout.axis === "vertical") {
+      const nextB = { ...b, x: b.x - layout.gap };
+      return {
+        ...layout,
+        pieces: [a, nextB],
+        gap: 0,
+        gapRect: { x: a.x + a.width, y: a.y, width: 0, height: a.height },
+        flipAxis: a.x + a.width,
+      };
+    }
+    const nextB = { ...b, y: b.y - layout.gap };
+    return {
+      ...layout,
+      pieces: [a, nextB],
+      gap: 0,
+      gapRect: { x: a.x, y: a.y + a.height, width: a.width, height: 0 },
+      flipAxis: a.y + a.height,
+    };
+  }
+
+  private tailDrawShift(): { x: number; y: number } {
+    const collapse = this.layoutGapShift();
+    if (!collapse) return { x: 0, y: 0 };
+    if (collapse.axis === "vertical" && this.labelProps.tailPos === "right") return { x: -collapse.gap, y: 0 };
+    if (collapse.axis === "horizontal" && this.labelProps.tailPos === "bottom") return { x: 0, y: -collapse.gap };
+    return { x: 0, y: 0 };
+  }
+
+  private expandObject(obj: fabric.FabricObject) {
+    const o = obj as GapObject;
+    const dx = o.gapOffsetX ?? 0;
+    const dy = o.gapOffsetY ?? 0;
+    if (dx) obj.left = (obj.left ?? 0) + dx;
+    if (dy) obj.top = (obj.top ?? 0) + dy;
+    delete o.gapOffsetX;
+    delete o.gapOffsetY;
+    if (dx || dy) obj.setCoords();
+  }
+
+  private setGapOffset(obj: GapObject, axis: "vertical" | "horizontal", value: number) {
+    if (axis === "vertical") {
+      if (value) obj.gapOffsetX = value;
+      else delete obj.gapOffsetX;
+      delete obj.gapOffsetY;
+    } else {
+      if (value) obj.gapOffsetY = value;
+      else delete obj.gapOffsetY;
+      delete obj.gapOffsetX;
+    }
+  }
+
+  /** Keep each object on its piece when the editor hides the gap. */
+  private syncObjectGap(obj: fabric.FabricObject) {
+    if (this.gapSyncPaused) return;
+    const layout = this.getTwoPieceLayout();
+    const collapse = this.layoutGapShift();
+    if (!layout || !collapse) {
+      this.expandObject(obj);
+      return;
+    }
+
+    const o = obj as GapObject;
+    if (collapse.axis === "vertical" && o.gapOffsetY) this.expandObject(obj);
+    if (collapse.axis === "horizontal" && o.gapOffsetX) this.expandObject(obj);
+
+    const prev = collapse.axis === "vertical" ? (o.gapOffsetX ?? 0) : (o.gapOffsetY ?? 0);
+    const center = obj.getCenterPoint();
+    const coord = collapse.axis === "vertical" ? center.x : center.y;
+    const fullPieceB = collapse.axis === "vertical" ? layout.pieces[1].x : layout.pieces[1].y;
+
+    if (prev === 0 && coord >= fullPieceB - 0.01) {
+      if (collapse.axis === "vertical") obj.left = (obj.left ?? 0) - collapse.gap;
+      else obj.top = (obj.top ?? 0) - collapse.gap;
+      this.setGapOffset(o, collapse.axis, collapse.gap);
+      obj.setCoords();
+      return;
+    }
+
+    const onSecondPiece = coord >= fullPieceB - layout.gap - 0.01;
+    const desired = onSecondPiece ? collapse.gap : 0;
+    if (prev !== 0 && prev !== desired) {
+      const delta = desired - prev;
+      if (collapse.axis === "vertical") obj.left = (obj.left ?? 0) - delta;
+      else obj.top = (obj.top ?? 0) - delta;
+      obj.setCoords();
+    }
+    this.setGapOffset(o, collapse.axis, desired);
+  }
+
+  private syncEditorGap() {
+    this.getObjects().forEach((obj) => this.syncObjectGap(obj));
+    this.applyEditorClip();
+  }
+
+  /** Hide the empty strip left after the two pieces are pulled together. */
+  private applyEditorClip() {
+    const container = this.getElement()?.parentElement;
+    if (!container) return;
+    const zoom = this.virtualZoomRatio;
+    const fullW = this.getWidth() * zoom;
+    const fullH = this.getHeight() * zoom;
+    const collapse = this.layoutGapShift();
+    if (!collapse) {
+      container.style.width = `${fullW}px`;
+      container.style.height = `${fullH}px`;
+      container.style.overflow = "";
+      return;
+    }
+    const dw = collapse.axis === "vertical" ? collapse.gap * zoom : 0;
+    const dh = collapse.axis === "horizontal" ? collapse.gap * zoom : 0;
+    container.style.overflow = "hidden";
+    container.style.width = `${Math.max(1, fullW - dw)}px`;
+    container.style.height = `${Math.max(1, fullH - dh)}px`;
+  }
+
+  override centerObject(object: fabric.FabricObject) {
+    const collapse = this.layoutGapShift();
+    if (!collapse) {
+      super.centerObject(object);
+      return;
+    }
+    const bb = this.getLabelBounds();
+    const endX = collapse.axis === "vertical" ? bb.endX - collapse.gap : bb.endX;
+    const endY = collapse.axis === "horizontal" ? bb.endY - collapse.gap : bb.endY;
+    object.setPositionByOrigin(new fabric.Point((bb.startX + endX) / 2, (bb.startY + endY) / 2), "center", "center");
+    object.setCoords();
+    this.syncObjectGap(object);
+    this.renderOnAddRemove && this.requestRenderAll();
   }
 
   /** Get label bounds without tail */
@@ -217,8 +423,90 @@ export class CustomCanvas extends fabric.Canvas {
     return { startX, startY, endX, endY, width, height };
   }
 
+  /**
+   * Two explicit pieces plus a gap.
+   * Missing sizes keep the equal-slice layout used by older labels.
+   */
+  private getTwoPieceLayout(): TwoPieceLayout | null {
+    const split = this.labelProps.split ?? "none";
+    const sizeA = this.labelProps.splitSizeA;
+    const sizeB = this.labelProps.splitSizeB;
+    if ((split !== "vertical" && split !== "horizontal") || sizeA === undefined || sizeB === undefined) {
+      return null;
+    }
+    if (!(sizeA > 0) || !(sizeB > 0)) {
+      return null;
+    }
+
+    const bb = this.getLabelBounds();
+    const shapeA = this.labelProps.shapeA ?? this.labelProps.shape ?? "rect";
+    const shapeB = this.labelProps.shapeB ?? this.labelProps.shape ?? "rect";
+
+    if (split === "vertical") {
+      const gap = bb.width - sizeA - sizeB;
+      if (gap < 0) return null;
+      return {
+        axis: "vertical",
+        pieces: [
+          { x: bb.startX, y: bb.startY, width: sizeA, height: bb.height, shape: shapeA },
+          { x: bb.endX - sizeB, y: bb.startY, width: sizeB, height: bb.height, shape: shapeB },
+        ],
+        gap,
+        gapRect: { x: bb.startX + sizeA, y: bb.startY, width: gap, height: bb.height },
+        flipAxis: bb.startX + sizeA + gap / 2,
+      };
+    }
+
+    const gap = bb.height - sizeA - sizeB;
+    if (gap < 0) return null;
+    return {
+      axis: "horizontal",
+      pieces: [
+        { x: bb.startX, y: bb.startY, width: bb.width, height: sizeA, shape: shapeA },
+        { x: bb.startX, y: bb.endY - sizeB, width: bb.width, height: sizeB, shape: shapeB },
+      ],
+      gap,
+      gapRect: { x: bb.startX, y: bb.startY + sizeA, width: bb.width, height: gap },
+      flipAxis: bb.startY + sizeA + gap / 2,
+    };
+  }
+
+  private tracePiece(ctx: CanvasRenderingContext2D, piece: SplitPiece) {
+    const { x, y, width, height, shape } = piece;
+    if (width <= 0 || height <= 0) return;
+
+    if (shape === "circle") {
+      const radius = Math.min(width, height) / 2;
+      ctx.moveTo(x + width / 2 + radius, y + height / 2);
+      ctx.arc(x + width / 2, y + height / 2, radius, 0, Math.PI * 2);
+      return;
+    }
+
+    if (shape === "rounded_rect") {
+      const radius = Math.min(this.ROUND_RADIUS, width / 2, height / 2);
+      ctx.roundRect(x, y, width, height, radius);
+      return;
+    }
+
+    ctx.rect(x, y, width, height);
+  }
+
   /** Get fold line position for splitted labels */
   getFoldInfo(): FoldInfo {
+    const layout = this.displayLayout();
+    if (layout) {
+      const segments = layout.pieces.map((piece) => ({
+        start: layout.axis === "vertical" ? piece.x : piece.y,
+        end: layout.axis === "vertical" ? piece.x + piece.width : piece.y + piece.height,
+      }));
+      return {
+        axis: layout.axis,
+        points: [segments[1].start],
+        segments,
+        flipAxis: layout.flipAxis,
+      };
+    }
+
     const bb = this.getLabelBounds();
     const points: number[] = [];
     const segments: FoldSegment[] = [];
@@ -278,8 +566,11 @@ export class CustomCanvas extends fabric.Canvas {
       return;
     }
 
+    const layout = this.displayLayout();
+    const physical = this.getTwoPieceLayout();
+
     // Disable further actions for circle labels, just render
-    if (this.labelProps.shape === "circle") {
+    if (!physical && this.labelProps.shape === "circle") {
       ctx.beginPath();
       ctx.arc(this.width / 2, this.height / 2, this.height / 2, 0, 2 * Math.PI);
       ctx.fill();
@@ -295,7 +586,10 @@ export class CustomCanvas extends fabric.Canvas {
       roundRadius = 0;
     }
 
-    // Draw tail
+    // Draw tail. A right or bottom tail moves with the second piece.
+    const tailShift = this.tailDrawShift();
+    ctx.save();
+    ctx.translate(tailShift.x, tailShift.y);
     ctx.fillStyle = this.GRAY;
 
     ctx.beginPath();
@@ -334,6 +628,7 @@ export class CustomCanvas extends fabric.Canvas {
       }
     }
     ctx.fill();
+    ctx.restore();
 
     // Draw label(s)
     ctx.fillStyle = "white";
@@ -342,7 +637,9 @@ export class CustomCanvas extends fabric.Canvas {
 
     const splitParts = this.labelProps.splitParts ?? 2;
 
-    if (this.labelProps.shape === "rounded_rect") {
+    if (layout) {
+      layout.pieces.forEach((piece) => this.tracePiece(ctx, piece));
+    } else if (this.labelProps.shape === "rounded_rect") {
       if (this.labelProps.split === "horizontal") {
         const segmentHeight = bb.height / splitParts;
         ctx.roundRect(
@@ -376,23 +673,38 @@ export class CustomCanvas extends fabric.Canvas {
 
     ctx.fill();
 
-    // Draw separator
+    // Thumbnails keep the gray gap. The editor uses a dashed line and no empty band.
+    const showGrayGap = !!physical && physical.gap > 0 && !this.layoutGapShift();
+    if (showGrayGap) {
+      ctx.fillStyle = this.GRAY;
+      ctx.fillRect(physical.gapRect.x, physical.gapRect.y, physical.gapRect.width, physical.gapRect.height);
+    }
 
     ctx.strokeStyle = this.GRAY;
     ctx.lineWidth = this.SEPARATOR_LINE_WIDTH;
     ctx.setLineDash([8, 8]);
     ctx.beginPath();
 
-    if (fold.axis === "horizontal") {
-      fold.points.forEach((x) => {
-        ctx.moveTo(bb.startX + roundRadius, x);
-        ctx.lineTo(bb.endX - roundRadius, x);
-      });
-    } else if (fold.axis === "vertical") {
-      fold.points.forEach((y) => {
-        ctx.moveTo(y, bb.startY + roundRadius);
-        ctx.lineTo(y, bb.endY - roundRadius);
-      });
+    if (!showGrayGap) {
+      const separatorInset = layout
+        ? Math.min(
+            ...layout.pieces.map((piece) =>
+              piece.shape === "rounded_rect" ? Math.min(this.ROUND_RADIUS, piece.width / 2, piece.height / 2) : 0,
+            ),
+          )
+        : roundRadius;
+
+      if (fold.axis === "horizontal") {
+        fold.points.forEach((x) => {
+          ctx.moveTo(bb.startX + separatorInset, x);
+          ctx.lineTo(bb.endX - separatorInset, x);
+        });
+      } else if (fold.axis === "vertical") {
+        fold.points.forEach((y) => {
+          ctx.moveTo(y, bb.startY + separatorInset);
+          ctx.lineTo(y, bb.endY - separatorInset);
+        });
+      }
     }
 
     ctx.stroke();
@@ -475,7 +787,7 @@ export class CustomCanvas extends fabric.Canvas {
         fold.points.length === 1
       ) {
         // Half split only supported
-        const axisX = fold.points[0];
+        const axisX = fold.flipAxis ?? fold.points[0];
         const pos = obj.getPointByOrigin("center", "center");
         pos.setX(axisX + (axisX - pos.x));
         pos.setY(bounds.startY + bounds.endY - pos.y);
@@ -493,7 +805,7 @@ export class CustomCanvas extends fabric.Canvas {
         fold.points.length === 1
       ) {
         // Half split only supported
-        const axisY = fold.points[0];
+        const axisY = fold.flipAxis ?? fold.points[0];
         const pos = obj.getPointByOrigin("center", "center");
         pos.setY(axisY + (axisY - pos.y));
         pos.setX(bounds.startX + bounds.endX - pos.x);

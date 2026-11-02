@@ -62,6 +62,51 @@ export class TextboxExt<
     }
   }
 
+  override initHiddenTextarea() {
+    super.initHiddenTextarea();
+    const textarea = this.hiddenTextarea;
+    if (!textarea) return;
+
+    // Android's keyboard treats this 1px field as single-line and uses Enter
+    // to dismiss it. Ask for a newline key, and insert the break ourselves.
+    textarea.enterKeyHint = "enter";
+
+    const insertNewline = () => {
+      const start = textarea.selectionStart ?? 0;
+      const end = textarea.selectionEnd ?? start;
+      textarea.value = `${textarea.value.slice(0, start)}\n${textarea.value.slice(end)}`;
+      const cursor = start + 1;
+      textarea.selectionStart = cursor;
+      textarea.selectionEnd = cursor;
+      textarea.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertLineBreak", data: "\n" }));
+    };
+
+    let handledEnter = false;
+    const isPlainEnter = (e: KeyboardEvent) =>
+      (e.key === "Enter" || e.keyCode === 13) && !e.ctrlKey && !e.metaKey && !e.altKey && !e.isComposing;
+
+    textarea.addEventListener(
+      "keydown",
+      (e) => {
+        if (!isPlainEnter(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        insertNewline();
+        handledEnter = true;
+        queueMicrotask(() => {
+          handledEnter = false;
+        });
+      },
+      true,
+    );
+
+    textarea.addEventListener("beforeinput", (e) => {
+      if (e.inputType !== "insertLineBreak") return;
+      e.preventDefault();
+      if (!handledEnter) insertNewline();
+    });
+  }
+
   override enterEditingImpl() {
     super.enterEditingImpl();
     this.widthBeforeEditing = this.width;

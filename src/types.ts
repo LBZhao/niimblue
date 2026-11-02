@@ -33,8 +33,16 @@ export const LabelPropsSchema = z.object({
     height: z.number().positive(),
   }),
   shape: z.enum(["rect", "rounded_rect", "circle"]).default("rect").optional(),
+  /** Left piece when split is vertical, top piece when split is horizontal. */
+  shapeA: z.enum(["rect", "rounded_rect", "circle"]).optional(),
+  /** Right piece when split is vertical, bottom piece when split is horizontal. */
+  shapeB: z.enum(["rect", "rounded_rect", "circle"]).optional(),
   split: z.enum(["none", "vertical", "horizontal"]).default("none").optional(),
   splitParts: z.number().min(1).default(2).optional(),
+  /** Width of the left piece, or height of the top piece, in pixels. */
+  splitSizeA: z.number().positive().optional(),
+  /** Width of the right piece, or height of the bottom piece, in pixels. */
+  splitSizeB: z.number().positive().optional(),
   tailPos: z.enum(["right", "bottom", "left", "top"]).default("right").optional(),
   tailLength: z.number().default(0).optional(),
   mirror: z.enum(["none", "copy", "flip"]).default("none").optional(),
@@ -48,8 +56,16 @@ export const LabelPresetSchema = z.object({
   printDirection: z.enum(["left", "top"]),
   title: z.string().optional(),
   shape: z.enum(["rect", "rounded_rect", "circle"]).default("rect").optional(),
+  /** Left piece when split is vertical, top piece when split is horizontal. Stored in `unit`. */
+  shapeA: z.enum(["rect", "rounded_rect", "circle"]).optional(),
+  /** Right piece when split is vertical, bottom piece when split is horizontal. Stored in `unit`. */
+  shapeB: z.enum(["rect", "rounded_rect", "circle"]).optional(),
   split: z.enum(["none", "vertical", "horizontal"]).default("none").optional(),
   splitParts: z.number().min(1).default(2).optional(),
+  /** Width of the left piece, or height of the top piece, in `unit`. */
+  splitSizeA: z.number().positive().optional(),
+  /** Width of the right piece, or height of the bottom piece, in `unit`. */
+  splitSizeB: z.number().positive().optional(),
   tailPos: z.enum(["right", "bottom", "left", "top"]).default("right").optional(),
   tailLength: z.number().default(0).optional(),
   mirror: z.enum(["none", "copy", "flip"]).default("none").optional(),

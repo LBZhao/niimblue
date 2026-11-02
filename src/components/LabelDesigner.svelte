@@ -6,7 +6,7 @@
   import { Barcode } from "$/fabric-object/barcode";
   import { QRCode } from "$/fabric-object/qrcode";
   import { iconCodepoints, type MaterialIcon } from "$/styles/mdi_icons";
-  import { appConfig, automation, connectionState, csvData, loadedFonts } from "$/stores";
+  import { appConfig, automation, connectedPrinterName, connectionState, csvData, loadedFonts, printerMeta } from "$/stores";
   import {
     type ExportedLabelTemplate,
     type FabricJson,
@@ -38,6 +38,7 @@
   import { CustomCanvas } from "$/fabric-object/custom_canvas";
   import VectorParamsControls from "$/components/designer-controls/VectorParamsControls.svelte";
   import { CanvasUtils } from "$/utils/canvas_utils";
+  import { isM2Printer } from "$/utils/print_direction";
 
   let htmlCanvas: HTMLCanvasElement;
 
@@ -458,6 +459,13 @@
   });
 
   $effect(() => {
+    if (!fabricCanvas) return;
+    if (!isM2Printer($printerMeta?.model, $connectedPrinterName)) return;
+    if (labelProps.printDirection === "top") return;
+    onUpdateLabelProps({ ...labelProps, printDirection: "top" });
+  });
+
+  $effect(() => {
     if (!previewOpened) {
       printNow = false;
     }
@@ -615,6 +623,11 @@
   }
   .canvas-wrapper.print-start-top {
     border-top: 2px solid #ff4646;
+  }
+  .canvas-wrapper :global(.canvas-container),
+  .canvas-wrapper :global(canvas) {
+    touch-action: none;
+    max-width: none;
   }
   .canvas-wrapper canvas {
     image-rendering: pixelated;
