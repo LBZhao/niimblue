@@ -230,6 +230,7 @@ export class CustomCanvas extends fabric.Canvas {
     this.showPhysicalGap = true;
     try {
       this.getObjects().forEach((obj) => this.expandObject(obj));
+      this.layoutManagedTextForOutput();
       this.applyEditorClip();
       this.renderAll();
       return draw();
@@ -352,7 +353,7 @@ export class CustomCanvas extends fabric.Canvas {
       this.expandObject(obj);
       return;
     }
-    // The date stores its own offset from the collapsed view to the real label center.
+    // The date is placed on the main piece. Collapsing the gap must not slide it.
     if (obj instanceof TextboxExt && obj.labelRole === "date") return;
 
     const o = obj as GapObject;
@@ -912,6 +913,19 @@ export class CustomCanvas extends fabric.Canvas {
    */
   layoutManagedText(mode: "all" | "primary" | "secondary" = "all") {
     if (!this.customBackground || this.showPhysicalGap || this.suspendManagedLayout || this.layoutQuiet) return;
+    this.applyManagedLayout(mode);
+  }
+
+  /**
+   * Place the date and text boxes on the real pieces, including the gap.
+   * Print and thumbnails use this so collapsed editor coordinates are not what get drawn.
+   */
+  layoutManagedTextForOutput() {
+    if (this.layoutQuiet || this.suspendManagedLayout) return;
+    this.applyManagedLayout("all");
+  }
+
+  private applyManagedLayout(mode: "all" | "primary" | "secondary") {
     this.layoutQuiet = true;
     try {
       const date = mode === "all" ? this.ensureDate() : this.findRole("date");
@@ -951,7 +965,10 @@ export class CustomCanvas extends fabric.Canvas {
       return;
     }
     if (linesChanged) this.layoutManagedText("primary");
-    else if (firstChanged) this.layoutManagedText("secondary");
+    else {
+      this.lockPrimaryWrap(target);
+      if (firstChanged) this.layoutManagedText("secondary");
+    }
   }
 
   private textboxes(): TextboxExt[] {
@@ -1019,27 +1036,19 @@ export class CustomCanvas extends fabric.Canvas {
     }
 
     const [topOrLeft, bottomOrRight] = display.pieces;
-    const vertical = display.axis === "vertical";
-    const visualLeft = Math.min(topOrLeft.x, bottomOrRight.x);
-    const visualRight = vertical
-      ? bottomOrRight.x + bottomOrRight.width
-      : Math.max(topOrLeft.x + topOrLeft.width, bottomOrRight.x + bottomOrRight.width);
-    const visualBottom = vertical
-      ? Math.max(topOrLeft.y + topOrLeft.height, bottomOrRight.y + bottomOrRight.height)
-      : bottomOrRight.y + bottomOrRight.height;
-    const bottomPieceHeight = vertical ? bounds.height : bottomOrRight.height;
+    const mainBottom = topOrLeft.y + topOrLeft.height;
     return {
       primary: topOrLeft,
       secondary: bottomOrRight,
-      primaryStopsForDate: vertical,
-      textLimitY: visualBottom - band,
+      primaryStopsForDate: true,
+      textLimitY: mainBottom - band,
       date: {
-        visualX: (visualLeft + visualRight) / 2,
-        visualBottom,
-        offsetX: (bounds.startX + bounds.endX) / 2 - (visualLeft + visualRight) / 2,
-        offsetY: bounds.endY - visualBottom,
-        maxWidth: Math.max(1, visualRight - visualLeft),
-        maxHeight: Math.max(1, bottomPieceHeight - 2),
+        visualX: topOrLeft.x + topOrLeft.width / 2,
+        visualBottom: mainBottom,
+        offsetX: 0,
+        offsetY: 0,
+        maxWidth: Math.max(1, topOrLeft.width),
+        maxHeight: Math.max(1, topOrLeft.height - 2),
         labelHeight: bounds.height,
       },
     };
@@ -1115,13 +1124,50 @@ export class CustomCanvas extends fabric.Canvas {
     const source = firstLine(this.findRole("primary")?.text ?? "");
     const box = existing ?? this.createRole("secondary", source);
     box.labelRole = "secondary";
+    const pieceBottom = frames.secondary.y + frames.secondary.height;
     if (frames.secondary.shape === "circle") {
-      placeCircleText(box, source, frames.secondary, frames.textLimitY);
+      placeCircleText(box, source, frames.secondary, pieceBottom);
     } else {
-      placeFittedText(box, source, this.areaAboveDate(frames.secondary, true, frames.textLimitY));
+      placeFittedText(box, source, this.areaAboveDate(frames.secondary, false, frames.textLimitY));
     }
     box.lastLayoutText = box.text;
     this.holdPiece(box, true);
+  }
+
+  /** Keep the main box at the piece width so words wrap before Enter. The font stays put. */
+  private lockPrimaryWrap(box: TextboxExt) {
+    const dateHeight = this.findRole("date")?.height ?? 0;
+    const frames = this.managedFrames(dateHeight);
+    const area = this.areaAboveDate(frames.primary, frames.primaryStopsForDate, frames.textLimitY);
+    const pieceWidth = Math.max(1, area.width);
+    this.layoutQuiet = true;
+    try {
+      box.dynamicMinWidth = 0;
+      box.set({
+        width: pieceWidth,
+        splitByGrapheme: false,
+        textAlign: "center",
+        originX: "center",
+        originY: "center",
+        scaleX: 1,
+        scaleY: 1,
+        angle: 0,
+      });
+      if (box.width > pieceWidth + 0.5) {
+        box.dynamicMinWidth = 0;
+        box.width = pieceWidth;
+      }
+      box.setPositionByOrigin(
+        new fabric.Point(area.x + area.width / 2, area.y + area.height / 2),
+        "center",
+        "center",
+      );
+      box.setCoords();
+      box.dirty = true;
+      this.holdPiece(box, false);
+    } finally {
+      this.layoutQuiet = false;
+    }
   }
 
   /** Remember which piece a fitted box belongs to without sliding it again. */
