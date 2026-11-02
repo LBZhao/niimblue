@@ -1,3 +1,40 @@
+# NiimBlue — Linbo's edition
+
+> An unofficial, edited version of [NiimBlue](https://github.com/MultiMote/niimblue) by **MultiMote**.
+> All credit for the original app and the printer protocol goes to MultiMote and the NiimBlue contributors.
+> For the official app, go to [niim.blue](https://niim.blue) or the [original repository](https://github.com/MultiMote/niimblue).
+
+Tested on a **NIIMBOT M2_H** (300 dpi, 36.5 × 9.5 mm split labels: a 25 mm rounded piece plus a 9.5 mm round dot) with a **Redmi Note 17 Pro**, using the Android app built from `standalone-apps/capacitor`.
+
+### What this edition changes
+
+- **Split labels with a dot**: a main piece and a second piece can each be a rectangle, rounded rectangle or circle. The main text, a copy for the dot and today's date are fitted automatically. Short names (one or two words) are stacked one word per line in the dot, and wrapped words never run into the date.
+- **Editor**: the gap between split pieces shows as a 1 mm strip with a dashed line, and the label zooms to fit the phone's screen width.
+- **Label fonts**: Barlow Semi Condensed, Roboto Condensed, IBM Plex Sans Condensed and Atkinson Hyperlegible Next are bundled for offline use. Changing the main font also updates the dot and the date.
+- **Recently printed**: the last 20 printed labels are listed under the toolbar; tap one to load it (Undo restores the previous label). Saved and imported labels always print with today's date.
+- **Save to phone**: on Android, saved labels are also written as JSON files to `Documents/NiimBlue`, so they survive reinstalling the app.
+- **Easier on a phone**: saved labels and label presets are shown in two columns with real-shape previews, and an Edit mode with large delete buttons and a confirmation.
+- **Fixes**: label thumbnails are drawn at the real label size, and M2 printers are detected and set to the top print direction.
+
+### Credits
+
+- **[NiimBlue](https://github.com/MultiMote/niimblue)** by MultiMote and its contributors, MIT License — the app this edition is built on. Translations by the NiimBlue community on [Weblate](https://weblate.mmote.ru/engage/niimblue/).
+- **[NiimBlueLib](https://github.com/MultiMote/niimbluelib)** by MultiMote — NIIMBOT printer communication, and the [NIIMBOT Community Wiki](https://printers.niim.blue) protocol documentation.
+- Libraries: [Svelte](https://svelte.dev), [Fabric.js](https://fabricjs.com), [Capacitor](https://capacitorjs.com), [Bootstrap](https://getbootstrap.com), [Zod](https://zod.dev), [Day.js](https://day.js.org), [Fontsource](https://fontsource.org), [Material Icons](https://fonts.google.com/icons) (Apache 2.0).
+- Fonts, all under the [SIL Open Font License 1.1](https://openfontlicense.org):
+  - Noto Sans — Copyright 2022 The Noto Project Authors
+  - Barlow Semi Condensed — Copyright 2017 The Barlow Project Authors
+  - Roboto Condensed — Copyright 2011 Google Inc.
+  - IBM Plex Sans Condensed — Copyright 2019 IBM Corp.
+  - Atkinson Hyperlegible Next — Copyright 2020-2024 The Atkinson Hyperlegible Next Project Authors
+- The changes in this edition were made by Linbo Zhao, assisted by **Claude Opus 5.5** (Anthropic) through Claude Code.
+
+This edition keeps the original MIT License (see [LICENSE](LICENSE)). It is not affiliated with NIIMBOT or with the NiimBlue project.
+
+---
+
+*The original NiimBlue README follows.*
+
 <div align="center">
 
 [![logo](about/logo.svg)](https://niim.blue)
