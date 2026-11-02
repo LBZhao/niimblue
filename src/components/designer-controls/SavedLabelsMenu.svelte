@@ -10,6 +10,7 @@
   import { FileUtils } from "$/utils/file_utils";
   import * as fabric from "fabric";
   import { Utils } from "@mmote/niimbluelib";
+  import { Capacitor } from "@capacitor/core";
 
   interface Props {
     onRequestLabelTemplate: () => ExportedLabelTemplate;
@@ -27,6 +28,7 @@
   let usedSpace = $state<number>(0);
   let customDefaultTemplate = $state<boolean>(LocalStoragePersistence.hasCustomDefaultTemplate());
   let isStandalone = Utils.getAvailableTransports().capacitorBle;
+  const onPhone = Capacitor.getPlatform() !== "web";
 
   const calcUsedSpace = () => {
     usedSpace = LocalStoragePersistence.usedSpace();
@@ -37,7 +39,21 @@
     title = savedLabels[index]?.title ?? "";
   };
 
+  /** Write a copy to Documents/NiimBlue on the phone. Does nothing in a browser. */
+  const copyToPhone = async (label: ExportedLabelTemplate) => {
+    try {
+      const path = await FileUtils.saveLabelToPhone(label);
+      if (path) Toasts.message(`${$tr("params.saved_labels.saved_to_phone")} ${path}`);
+    } catch (e) {
+      Toasts.error(e);
+    }
+  };
+
   const onLabelExport = (idx: number) => {
+    if (onPhone) {
+      copyToPhone(savedLabels[idx]);
+      return;
+    }
     try {
       FileUtils.saveLabelAsJson(savedLabels[idx]);
     } catch (e) {
@@ -56,16 +72,19 @@
     calcUsedSpace();
   };
 
-  const saveLabels = (labels: ExportedLabelTemplate[]) => {
+  /** Returns true when every label was stored. */
+  const saveLabels = (labels: ExportedLabelTemplate[]): boolean => {
     const { zodErrors, otherErrors } = LocalStoragePersistence.saveLabels(labels);
     zodErrors.forEach((e) => Toasts.zodErrors(e, "Label save error"));
     otherErrors.forEach((e) => Toasts.error(e));
 
-    if (zodErrors.length === 0 && otherErrors.length === 0) {
+    const saved = zodErrors.length === 0 && otherErrors.length === 0;
+    if (saved) {
       savedLabels = labels;
     }
 
     calcUsedSpace();
+    return saved;
   };
 
   const onSaveReplaceClicked = () => {
@@ -83,7 +102,7 @@
     const result = [...savedLabels];
     result[selectedIndex] = label;
 
-    saveLabels(result);
+    if (saveLabels(result)) copyToPhone(label);
   };
 
   const onMakeDefaultClicked = () => {
@@ -105,7 +124,7 @@
     const label = onRequestLabelTemplate();
     label.title = title;
     const result = [...savedLabels, label];
-    saveLabels(result);
+    if (saveLabels(result)) copyToPhone(label);
   };
 
   const onLoadClicked = () => {
@@ -209,6 +228,10 @@
     <h6 class="dropdown-header text-wrap">
       {$tr("params.saved_labels.menu_title")} - {usedSpace}
       {$tr("params.saved_labels.kb_used")}
+
+      {#if onPhone}
+        <div class="pt-1 fw-normal">{$tr("params.saved_labels.phone_copy_note")}</div>
+      {/if}
 
       {#if csvEnabled}
         <div class="pt-3 text-warning">

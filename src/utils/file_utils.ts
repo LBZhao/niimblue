@@ -24,6 +24,9 @@ import { LocalStoragePersistence } from "./persistence";
 import { bundledFontsReady, csvData, loadedFonts, recentPrints } from "$/stores";
 import { get } from "svelte/store";
 
+/** Folder under the phone's Documents where saved labels are written. */
+const PHONE_LABELS_DIR = "NiimBlue";
+
 export class FileUtils {
   static timestamp(): number {
     return Math.floor(Date.now() / 1000);
@@ -186,6 +189,41 @@ export class FileUtils {
     tpl.id = LocalStoragePersistence.createUidForLabel(tpl);
 
     return tpl;
+  }
+
+  /** File name for a label: its title, or label_<timestamp> when untitled. */
+  static labelFileName(label: ExportedLabelTemplate): string {
+    const title = label.title?.trim().replaceAll(/[\\/:*?"<>|]/g, "_");
+    return title ? `${title}.json` : `label_${label.timestamp ?? FileUtils.timestamp()}.json`;
+  }
+
+  /**
+   * Write the label to Documents/NiimBlue on the phone, so it survives reinstalling the app.
+   * The same title overwrites its file. Returns the path shown to the user, or null on the web.
+   */
+  static async saveLabelToPhone(label: ExportedLabelTemplate): Promise<string | null> {
+    if (Capacitor.getPlatform() === "web") return null;
+    const { Directory, Encoding, Filesystem } = await import("@capacitor/filesystem");
+    const parsed = ExportedLabelTemplateSchema.omit({ id: true }).parse(label);
+    const data = JSON.stringify(parsed);
+    const write = (name: string) =>
+      Filesystem.writeFile({
+        path: `${PHONE_LABELS_DIR}/${name}`,
+        data,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8,
+        recursive: true,
+      });
+
+    let name = FileUtils.labelFileName(parsed);
+    try {
+      await write(name);
+    } catch {
+      // Android only lets an app overwrite files it created, e.g. not ones left by an older install.
+      name = name.replace(/\.json$/, `_${FileUtils.timestamp()}.json`);
+      await write(name);
+    }
+    return `Documents/${PHONE_LABELS_DIR}/${name}`;
   }
 
   /** Convert label template to JSON and download it */
@@ -477,7 +515,8 @@ export class FileUtils {
    * Redraw saved labels once, and recent prints once at their larger size.
    */
   static async refreshStoredThumbnails() {
-    const savedFlag = "thumbnails_v2";
+    // v3: saved labels moved to 96 px thumbnails for the two-column grid.
+    const savedFlag = "thumbnails_v3";
     const recentFlag = "recent_thumbnails_v3";
 
     const savedKeys = localStorage.getItem(savedFlag) === null ? Object.keys(localStorage) : [];

@@ -96,7 +96,7 @@ export const BUNDLED_FONTS: string[] = [
 export const RECENT_PRINTS_LIMIT = 20;
 
 /** Scale image to this height when making a label thumbnail */
-export const THUMBNAIL_HEIGHT = 48;
+export const THUMBNAIL_HEIGHT = 96;
 
 /** Recent prints are shown larger, so their thumbnails are taller */
 export const RECENT_THUMBNAIL_HEIGHT = 112;

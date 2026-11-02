@@ -1,7 +1,9 @@
 <script lang="ts">
-  import type { ExportedLabelTemplate, LabelProps } from "$/types";
+  import type { ExportedLabelTemplate } from "$/types";
   import { tr } from "$/utils/i18n";
   import MdIcon from "$/components/basic/MdIcon.svelte";
+  import { recentPrintName } from "$/utils/recent_prints";
+  import { Capacitor } from "@capacitor/core";
 
   interface Props {
     onItemClicked: (index: number) => void;
@@ -14,133 +16,152 @@
 
   let { onItemClicked, onItemDelete, onItemExport, labels, selectedIndex = -1, class: className }: Props = $props();
 
-  let deleteIndex = $state<number>(-1);
+  /** Edit mode shows large export and delete buttons and stops taps from selecting. */
+  let editing = $state<boolean>(false);
 
-  const scaleDimensions = (preset: LabelProps): { width: number; height: number } => {
-    const scaleFactor = Math.min(100 / preset.size.width, 100 / preset.size.height);
-    return {
-      width: Math.round(preset.size.width * scaleFactor),
-      height: Math.round(preset.size.height * scaleFactor),
-    };
+  /** In the app the export writes to the phone; in a browser it downloads. */
+  const onPhone = Capacitor.getPlatform() !== "web";
+
+  const onTileClick = (idx: number) => {
+    if (editing) return;
+    onItemClicked(idx);
   };
 
-  const deleteConfirmed = (e: MouseEvent, idx: number) => {
+  const deleteClicked = (e: MouseEvent, idx: number) => {
     e.stopPropagation();
-    deleteIndex = -1;
+    const name = recentPrintName(labels[idx]);
+    if (!confirm($tr("params.saved_labels.delete.confirm").replace("{name}", name))) return;
     onItemDelete(idx);
+    if (labels.length <= 1) editing = false;
   };
 
-  const deleteRejected = (e: MouseEvent) => {
-    e.stopPropagation();
-    deleteIndex = -1;
-  };
-
-  const deleteRequested = (e: MouseEvent, idx: number) => {
-    e.stopPropagation();
-    deleteIndex = idx;
-  };
-
-  const exportRequested = (e: MouseEvent, idx: number) => {
+  const exportClicked = (e: MouseEvent, idx: number) => {
     e.stopPropagation();
     onItemExport(idx);
   };
+
+  const toggleEditing = (e: MouseEvent) => {
+    // Keep the save/load dropdown open.
+    e.stopPropagation();
+    editing = !editing;
+  };
 </script>
 
-<div class="labels-browser overflow-y-auto border d-flex p-2 gap-1 flex-wrap {className}">
-  {#each labels as item, idx (item.id ?? item.timestamp)}
-    <div
-      tabindex="0"
-      class="btn p-0 card-wrapper d-flex justify-content-center align-items-center {selectedIndex === idx
-        ? 'border-primary'
-        : ''}"
-      onkeydown={() => onItemClicked(idx)}
-      onclick={() => onItemClicked(idx)}
-      role="button">
+<div class="labels-browser border {className}">
+  {#if labels.length > 0}
+    <div class="d-flex justify-content-end px-2 pt-2">
+      <button class="btn btn-sm {editing ? 'btn-primary' : 'btn-outline-secondary'}" onclick={toggleEditing}>
+        <MdIcon icon={editing ? "check" : "edit"} />
+        {editing ? $tr("params.saved_labels.done") : $tr("params.saved_labels.edit")}
+      </button>
+    </div>
+  {/if}
+  <div class="labels-list overflow-y-auto p-2">
+    {#each labels as item, idx (item.id ?? item.timestamp)}
+      {@const name = recentPrintName(item)}
       <div
-        class="card print-start-{item.label.printDirection} d-flex justify-content-center align-items-center"
-        style="width: {scaleDimensions(item.label).width}%; height: {scaleDimensions(item.label).height}%;">
-        <div class="buttons d-flex">
-          <button
-            class="btn text-primary-emphasis"
-            onclick={(e) => exportRequested(e, idx)}
-            title={$tr("params.saved_labels.save.json")}>
-            <MdIcon icon="download" />
-          </button>
-
-          {#if deleteIndex === idx}
-            <button class="remove btn text-danger-emphasis" onclick={(e) => deleteConfirmed(e, idx)}>
-              <MdIcon icon="delete" />
-            </button>
-            <button class="remove btn text-success" onclick={(e) => deleteRejected(e)}>
-              <MdIcon icon="close" />
-            </button>
-          {:else}
-            <button class="remove btn text-danger-emphasis" onclick={(e) => deleteRequested(e, idx)}>
-              <MdIcon icon="delete" />
-            </button>
+        tabindex="0"
+        role="button"
+        class="label-tile btn btn-outline-secondary p-1 d-flex flex-column align-items-center"
+        class:selected={selectedIndex === idx}
+        class:editing
+        title={name}
+        onkeydown={() => onTileClick(idx)}
+        onclick={() => onTileClick(idx)}>
+        <div class="thumb d-flex align-items-center justify-content-center">
+          {#if item.thumbnailBase64}
+            <img src={item.thumbnailBase64} alt={name} />
           {/if}
         </div>
+        <span class="label-name">{name}</span>
 
-        {#if item.thumbnailBase64}
-          <img class="thumbnail" src={item.thumbnailBase64} alt="thumbnail" />
-        {/if}
-
-        {#if item.title}
-          <span class="label p-1">
-            {item.title}
-          </span>
+        {#if editing}
+          <div class="tile-actions d-flex gap-2">
+            <button
+              class="btn btn-primary"
+              title={onPhone ? $tr("params.saved_labels.save_to_phone") : $tr("params.saved_labels.download")}
+              aria-label={onPhone ? $tr("params.saved_labels.save_to_phone") : $tr("params.saved_labels.download")}
+              onclick={(e) => exportClicked(e, idx)}>
+              <MdIcon icon={onPhone ? "save_alt" : "download"} />
+            </button>
+            <button
+              class="btn btn-danger"
+              title={$tr("params.saved_labels.delete")}
+              aria-label={$tr("params.saved_labels.delete")}
+              onclick={(e) => deleteClicked(e, idx)}>
+              <MdIcon icon="delete" />
+            </button>
+          </div>
         {/if}
       </div>
-    </div>
-  {/each}
+    {/each}
+  </div>
 </div>
 
 <style>
   .labels-browser {
-    max-height: 200px;
     max-width: 100%;
+  }
+
+  /* Two columns that share the box width, like the label presets. */
+  .labels-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-height: 320px;
     min-height: 96px;
   }
 
-  .card-wrapper {
-    width: 96px;
-    height: 96px;
-  }
-
-  .card {
-    background-color: white;
+  .label-tile {
     position: relative;
+    min-width: 0;
+    gap: 2px;
   }
 
-  .card > .buttons {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 2;
+  .label-tile.selected {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 2px var(--bs-primary);
   }
 
-  .card > .buttons > button {
-    padding: 0;
-    line-height: 100%;
+  .label-tile.editing {
+    cursor: default;
   }
 
-  .card > .label {
-    background-color: rgba(255, 255, 255, 0.8);
-    color: black;
-    border-radius: 8px;
-    z-index: 1;
-  }
-
-  .card.print-start-left {
-    border-left: 2px solid #ff4646;
-  }
-  .card.print-start-top {
-    border-top: 2px solid #ff4646;
-  }
-
-  .card .thumbnail {
+  .thumb {
     width: 100%;
-    height: 100%;
+    height: 72px;
+  }
+
+  .thumb img {
+    max-width: 100%;
+    max-height: 72px;
+    border-radius: 2px;
+  }
+
+  .label-name {
+    font-size: 0.8rem;
+    line-height: 1.15;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* At least 44 px so they are easy to hit on a phone. Sit on the thumbnail so the name stays readable. */
+  .tile-actions {
     position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .tile-actions > button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 1.4rem;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   }
 </style>
