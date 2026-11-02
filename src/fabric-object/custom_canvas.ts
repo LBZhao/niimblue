@@ -61,6 +61,8 @@ export class CustomCanvas extends fabric.Canvas {
   private readonly ROUND_RADIUS = 10;
   private readonly TAIL_WIDTH = 40;
   private readonly GRAY = "#CFCFCF";
+  /** Backing paper around the pieces in thumbnails. Darker than GRAY so white pieces read clearly. */
+  private readonly LINER = "#9E9E9E";
   private readonly MIRROR_GHOST_COLOR = "rgba(0, 0, 0, 0.3)";
   /** Gap shown between split pieces in the editor. */
   private readonly EDITOR_GAP_MM = 1;
@@ -444,10 +446,19 @@ export class CustomCanvas extends fabric.Canvas {
     this.renderOnAddRemove && this.requestRenderAll();
   }
 
+  /**
+   * Label size in canvas units. A scaled export (thumbnails) shrinks width/height and
+   * zooms the viewport by the same factor, so divide the zoom back out.
+   */
+  private logicalSize(): { width: number; height: number } {
+    const vpt = this.viewportTransform;
+    return { width: (this.width ?? 1) / (vpt[0] || 1), height: (this.height ?? 1) / (vpt[3] || 1) };
+  }
+
   /** Get label bounds without tail */
   getLabelBounds(): LabelBounds {
-    let endX = this.width ?? 1;
-    let endY = this.height ?? 1;
+    let endX = this.logicalSize().width;
+    let endY = this.logicalSize().height;
     let startX = 0;
     let startY = 0;
 
@@ -599,15 +610,25 @@ export class CustomCanvas extends fabric.Canvas {
     if (this.width === undefined || this.height === undefined) {
       return;
     }
+    const { width, height } = this.logicalSize();
+    const vpt = this.viewportTransform;
 
     ctx.save();
+    // Same transform the objects are drawn with, so scaled exports line up.
+    ctx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
     ctx.fillStyle = "white";
 
     // Draw simple white background and exit
     if (!this.customBackground) {
-      ctx.fillRect(0, 0, this.width, this.height);
+      ctx.fillRect(0, 0, width, height);
       ctx.restore();
       return;
+    }
+
+    // Thumbnails are JPEG, which has no transparency. Paint the liner so the pieces stand out.
+    if (this.showPhysicalGap) {
+      ctx.fillStyle = this.LINER;
+      ctx.fillRect(0, 0, width, height);
     }
 
     const layout = this.displayLayout();
@@ -615,8 +636,9 @@ export class CustomCanvas extends fabric.Canvas {
 
     // Disable further actions for circle labels, just render
     if (!physical && this.labelProps.shape === "circle") {
+      ctx.fillStyle = "white";
       ctx.beginPath();
-      ctx.arc(this.width / 2, this.height / 2, this.height / 2, 0, 2 * Math.PI);
+      ctx.arc(width / 2, height / 2, height / 2, 0, 2 * Math.PI);
       ctx.fill();
       ctx.restore();
       return;
@@ -645,7 +667,7 @@ export class CustomCanvas extends fabric.Canvas {
         ctx.rect(
           bb.endX - roundRadius,
           bb.endY / 2 - this.TAIL_WIDTH / 2,
-          this.width - bb.endX + roundRadius,
+          width - bb.endX + roundRadius,
           this.TAIL_WIDTH,
         );
       } else if (this.labelProps.tailPos === "bottom") {
@@ -653,7 +675,7 @@ export class CustomCanvas extends fabric.Canvas {
           bb.endX / 2 - this.TAIL_WIDTH / 2,
           bb.endY - roundRadius,
           this.TAIL_WIDTH,
-          this.height - bb.endY + roundRadius,
+          height - bb.endY + roundRadius,
         );
       } else if (this.labelProps.tailPos === "left") {
         ctx.rect(
@@ -709,7 +731,7 @@ export class CustomCanvas extends fabric.Canvas {
           ctx.roundRect(x, bb.startY, segmentWidth, bb.height, roundRadius),
         ); // Other parts
       } else {
-        ctx.roundRect(0, 0, this.width, this.height, roundRadius);
+        ctx.roundRect(0, 0, width, height, roundRadius);
       }
     } else {
       ctx.rect(bb.startX, bb.startY, bb.width, bb.height);
@@ -720,7 +742,7 @@ export class CustomCanvas extends fabric.Canvas {
     // Thumbnails keep the gray gap. The editor uses a dashed line and no empty band.
     const showGrayGap = !!physical && physical.gap > 0 && !this.layoutGapShift();
     if (showGrayGap) {
-      ctx.fillStyle = this.GRAY;
+      ctx.fillStyle = this.LINER;
       ctx.fillRect(physical.gapRect.x, physical.gapRect.y, physical.gapRect.width, physical.gapRect.height);
     }
 
