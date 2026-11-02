@@ -922,23 +922,23 @@ export class CustomCanvas extends fabric.Canvas {
    */
   layoutManagedTextForOutput() {
     if (this.layoutQuiet || this.suspendManagedLayout) return;
-    this.applyManagedLayout("all");
+    this.applyManagedLayout("all", true);
   }
 
-  private applyManagedLayout(mode: "all" | "primary" | "secondary") {
+  private applyManagedLayout(mode: "all" | "primary" | "secondary", physical = false) {
     this.layoutQuiet = true;
     try {
       const date = mode === "all" ? this.ensureDate() : this.findRole("date");
       let dateHeight = date?.height ?? 0;
       if (mode === "all" && date) {
-        const bounds = this.getLabelBounds();
-        sizeDateText(date, bounds.height, bounds.width, Math.max(1, bounds.height - 2));
+        const limit = this.managedFrames(0, physical).date;
+        sizeDateText(date, limit.labelHeight, limit.maxWidth, limit.maxHeight);
         dateHeight = date.height;
       }
-      let frames = this.managedFrames(dateHeight);
+      let frames = this.managedFrames(dateHeight, physical);
       if (mode === "all" && date && (date.height > frames.date.maxHeight || date.calcTextWidth() > frames.date.maxWidth)) {
         sizeDateText(date, frames.date.labelHeight, frames.date.maxWidth, frames.date.maxHeight);
-        frames = this.managedFrames(date.height);
+        frames = this.managedFrames(date.height, physical);
       }
       if (mode === "all" && date) this.placeDate(date, frames);
       if (mode === "all" || mode === "primary") this.fitPrimary(frames);
@@ -994,7 +994,7 @@ export class CustomCanvas extends fabric.Canvas {
     return this.createRole("date", todayStamp());
   }
 
-  private managedFrames(dateHeight: number): {
+  private managedFrames(dateHeight: number, physical = false): {
     primary: SplitPiece;
     secondary?: SplitPiece;
     primaryStopsForDate: boolean;
@@ -1010,7 +1010,8 @@ export class CustomCanvas extends fabric.Canvas {
     };
   } {
     const bounds = this.getLabelBounds();
-    const display = this.displayLayout();
+    // Print and thumbnails must use the real gap. The editor frame has it removed.
+    const display = physical ? this.getTwoPieceLayout() : this.displayLayout();
     const band = dateHeight + 2;
     if (!display) {
       return {
@@ -1153,10 +1154,9 @@ export class CustomCanvas extends fabric.Canvas {
         scaleY: 1,
         angle: 0,
       });
-      if (box.width > pieceWidth + 0.5) {
-        box.dynamicMinWidth = 0;
-        box.width = pieceWidth;
-      }
+      box.dynamicMinWidth = 0;
+      box.width = pieceWidth;
+      box.initDimensions();
       box.setPositionByOrigin(
         new fabric.Point(area.x + area.width / 2, area.y + area.height / 2),
         "center",
