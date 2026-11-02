@@ -1,6 +1,16 @@
 import * as fabric from "fabric";
-import { DEFAULT_LABEL_PROPS, GRID_SIZE } from "$/defaults";
+import { DEFAULT_LABEL_PROPS, GRID_SIZE, OBJECT_DEFAULTS_TEXT } from "$/defaults";
+import { TextboxExt } from "$/fabric-object/textbox-ext";
 import type { LabelProps, LabelShape } from "$/types";
+import {
+  firstLine,
+  newlineCount,
+  placeCircleText,
+  placeFittedText,
+  sizeDateText,
+  todayStamp,
+  type TextArea,
+} from "$/utils/label_text_layout";
 
 type LabelBounds = {
   startX: number;
@@ -56,6 +66,12 @@ export class CustomCanvas extends fabric.Canvas {
   /** Thumbnail capture draws the real gap. The editor collapses it to a dashed line. */
   private showPhysicalGap: boolean = false;
   private gapSyncPaused: boolean = false;
+  /** Skip auto-fit while a saved label is replacing the canvas. */
+  suspendManagedLayout = false;
+  /** True while the fitter is moving managed text, so undo can ignore that removal. */
+  layoutQuiet = false;
+  /** Text used when the label has no primary box yet. */
+  defaultLabelText = "Text";
   onZoomChange?: (zoom: number) => void;
 
   constructor(
@@ -66,6 +82,10 @@ export class CustomCanvas extends fabric.Canvas {
     this.setupZoomAndPan();
     this.preserveObjectStacking = true;
     this.on("object:added", (e) => e.target && this.syncObjectGap(e.target));
+    this.on("text:changed", (opt) => {
+      const target = (opt as { target?: fabric.FabricObject }).target;
+      this.onManagedTextChanged(target);
+    });
     this.on("object:modified", (e) => {
       const target = e.target;
       if (!target) return;
@@ -217,6 +237,7 @@ export class CustomCanvas extends fabric.Canvas {
       this.showPhysicalGap = false;
       this.gapSyncPaused = false;
       this.syncEditorGap();
+      this.layoutManagedText();
       this.renderAll();
     }
   }
@@ -240,6 +261,7 @@ export class CustomCanvas extends fabric.Canvas {
   setLabelProps(value: LabelProps) {
     this.labelProps = value;
     this.syncEditorGap();
+    this.layoutManagedText();
     this.requestRenderAll();
   }
 
@@ -330,6 +352,8 @@ export class CustomCanvas extends fabric.Canvas {
       this.expandObject(obj);
       return;
     }
+    // The date stores its own offset from the collapsed view to the real label center.
+    if (obj instanceof TextboxExt && obj.labelRole === "date") return;
 
     const o = obj as GapObject;
     if (collapse.axis === "vertical" && o.gapOffsetY) this.expandObject(obj);
@@ -880,5 +904,236 @@ export class CustomCanvas extends fabric.Canvas {
     }
 
     super.centerObjectV(object);
+  }
+
+  /**
+   * Fit the primary text, the split copy, and the bottom date.
+   * "primary" refits the main box and the copy. "secondary" refits only the copy.
+   */
+  layoutManagedText(mode: "all" | "primary" | "secondary" = "all") {
+    if (!this.customBackground || this.showPhysicalGap || this.suspendManagedLayout || this.layoutQuiet) return;
+    this.layoutQuiet = true;
+    try {
+      const date = mode === "all" ? this.ensureDate() : this.findRole("date");
+      let dateHeight = date?.height ?? 0;
+      if (mode === "all" && date) {
+        const bounds = this.getLabelBounds();
+        sizeDateText(date, bounds.height, bounds.width, Math.max(1, bounds.height - 2));
+        dateHeight = date.height;
+      }
+      let frames = this.managedFrames(dateHeight);
+      if (mode === "all" && date && (date.height > frames.date.maxHeight || date.calcTextWidth() > frames.date.maxWidth)) {
+        sizeDateText(date, frames.date.labelHeight, frames.date.maxWidth, frames.date.maxHeight);
+        frames = this.managedFrames(date.height);
+      }
+      if (mode === "all" && date) this.placeDate(date, frames);
+      if (mode === "all" || mode === "primary") this.fitPrimary(frames);
+      if (mode === "all" || mode === "primary" || mode === "secondary") this.fitSecondary(frames);
+      if (date) this.bringObjectToFront(date);
+      this.requestRenderAll();
+    } finally {
+      this.layoutQuiet = false;
+    }
+  }
+
+  private onManagedTextChanged(target?: fabric.FabricObject) {
+    if (this.layoutQuiet || this.suspendManagedLayout || !this.customBackground || this.showPhysicalGap) return;
+    if (!(target instanceof TextboxExt)) return;
+    if (target.labelRole !== "primary" && target.labelRole !== "secondary") return;
+    const prev = target.lastLayoutText ?? "";
+    const next = target.text ?? "";
+    if (next === prev) return;
+    const linesChanged = newlineCount(next) !== newlineCount(prev);
+    const firstChanged = firstLine(next) !== firstLine(prev);
+    target.lastLayoutText = next;
+    if (target.labelRole === "secondary") {
+      if (linesChanged) this.layoutManagedText("secondary");
+      return;
+    }
+    if (linesChanged) this.layoutManagedText("primary");
+    else if (firstChanged) this.layoutManagedText("secondary");
+  }
+
+  private textboxes(): TextboxExt[] {
+    return this.getObjects().filter((obj): obj is TextboxExt => obj instanceof TextboxExt);
+  }
+
+  private findRole(role: "primary" | "secondary" | "date"): TextboxExt | undefined {
+    return this.textboxes().find((obj) => obj.labelRole === role);
+  }
+
+  private createRole(role: "primary" | "secondary" | "date", text: string): TextboxExt {
+    const box = new TextboxExt(text, {
+      ...OBJECT_DEFAULTS_TEXT,
+      labelRole: role,
+    });
+    this.add(box);
+    return box;
+  }
+
+  private ensureDate(): TextboxExt {
+    const existing = this.findRole("date");
+    if (existing) return existing;
+    return this.createRole("date", todayStamp());
+  }
+
+  private managedFrames(dateHeight: number): {
+    primary: SplitPiece;
+    secondary?: SplitPiece;
+    primaryStopsForDate: boolean;
+    textLimitY: number;
+    date: {
+      visualX: number;
+      visualBottom: number;
+      offsetX: number;
+      offsetY: number;
+      maxWidth: number;
+      maxHeight: number;
+      labelHeight: number;
+    };
+  } {
+    const bounds = this.getLabelBounds();
+    const display = this.displayLayout();
+    const band = dateHeight + 2;
+    if (!display) {
+      return {
+        primary: {
+          x: bounds.startX,
+          y: bounds.startY,
+          width: bounds.width,
+          height: bounds.height,
+          shape: this.labelProps.shape ?? "rect",
+        },
+        primaryStopsForDate: true,
+        textLimitY: bounds.endY - band,
+        date: {
+          visualX: bounds.startX + bounds.width / 2,
+          visualBottom: bounds.endY,
+          offsetX: 0,
+          offsetY: 0,
+          maxWidth: Math.max(1, bounds.width),
+          maxHeight: Math.max(1, bounds.height - 2),
+          labelHeight: bounds.height,
+        },
+      };
+    }
+
+    const [topOrLeft, bottomOrRight] = display.pieces;
+    const vertical = display.axis === "vertical";
+    const visualLeft = Math.min(topOrLeft.x, bottomOrRight.x);
+    const visualRight = vertical
+      ? bottomOrRight.x + bottomOrRight.width
+      : Math.max(topOrLeft.x + topOrLeft.width, bottomOrRight.x + bottomOrRight.width);
+    const visualBottom = vertical
+      ? Math.max(topOrLeft.y + topOrLeft.height, bottomOrRight.y + bottomOrRight.height)
+      : bottomOrRight.y + bottomOrRight.height;
+    const bottomPieceHeight = vertical ? bounds.height : bottomOrRight.height;
+    return {
+      primary: topOrLeft,
+      secondary: bottomOrRight,
+      primaryStopsForDate: vertical,
+      textLimitY: visualBottom - band,
+      date: {
+        visualX: (visualLeft + visualRight) / 2,
+        visualBottom,
+        offsetX: (bounds.startX + bounds.endX) / 2 - (visualLeft + visualRight) / 2,
+        offsetY: bounds.endY - visualBottom,
+        maxWidth: Math.max(1, visualRight - visualLeft),
+        maxHeight: Math.max(1, bottomPieceHeight - 2),
+        labelHeight: bounds.height,
+      },
+    };
+  }
+
+  private placeDate(
+    date: TextboxExt,
+    frames: {
+      date: { visualX: number; visualBottom: number; offsetX: number; offsetY: number };
+    },
+  ) {
+    date.set({
+      originX: "center",
+      originY: "bottom",
+      angle: 0,
+      editable: false,
+      selectable: false,
+      evented: false,
+      hasControls: false,
+      hasBorders: false,
+      lockMovementX: true,
+      lockMovementY: true,
+      hoverCursor: "default",
+    });
+    date.setPositionByOrigin(
+      new fabric.Point(frames.date.visualX, frames.date.visualBottom - 2),
+      "center",
+      "bottom",
+    );
+    const gap = date as GapObject;
+    if (frames.date.offsetX) gap.gapOffsetX = frames.date.offsetX;
+    else delete gap.gapOffsetX;
+    if (frames.date.offsetY) gap.gapOffsetY = frames.date.offsetY;
+    else delete gap.gapOffsetY;
+    date.setCoords();
+    date.lastLayoutText = date.text;
+    date.dirty = true;
+  }
+
+  private areaAboveDate(piece: SplitPiece, stopAtDate: boolean, textLimitY: number): TextArea {
+    const bottom = stopAtDate ? Math.min(piece.y + piece.height, textLimitY) : piece.y + piece.height;
+    return {
+      x: piece.x,
+      y: piece.y,
+      width: Math.max(1, piece.width),
+      height: Math.max(1, bottom - piece.y),
+    };
+  }
+
+  private fitPrimary(frames: { primary: SplitPiece; primaryStopsForDate: boolean; textLimitY: number }) {
+    let box = this.findRole("primary");
+    if (!box) {
+      const candidate = this.textboxes().find((obj) => !obj.labelRole);
+      if (candidate) {
+        candidate.labelRole = "primary";
+        box = candidate;
+      }
+    }
+    if (!box) box = this.createRole("primary", this.defaultLabelText);
+    placeFittedText(box, box.text ?? "", this.areaAboveDate(frames.primary, frames.primaryStopsForDate, frames.textLimitY));
+    box.lastLayoutText = box.text;
+    this.holdPiece(box, false);
+  }
+
+  private fitSecondary(frames: { secondary?: SplitPiece; textLimitY: number }) {
+    const existing = this.findRole("secondary");
+    if (!frames.secondary) {
+      if (!existing) return;
+      if (this.getActiveObject() === existing) this.discardActiveObject();
+      this.remove(existing);
+      return;
+    }
+    const source = firstLine(this.findRole("primary")?.text ?? "");
+    const box = existing ?? this.createRole("secondary", source);
+    box.labelRole = "secondary";
+    if (frames.secondary.shape === "circle") {
+      placeCircleText(box, source, frames.secondary, frames.textLimitY);
+    } else {
+      placeFittedText(box, source, this.areaAboveDate(frames.secondary, true, frames.textLimitY));
+    }
+    box.lastLayoutText = box.text;
+    this.holdPiece(box, true);
+  }
+
+  /** Remember which piece a fitted box belongs to without sliding it again. */
+  private holdPiece(box: TextboxExt, onSecond: boolean) {
+    const collapse = this.layoutGapShift();
+    const gap = box as GapObject;
+    if (!collapse) {
+      delete gap.gapOffsetX;
+      delete gap.gapOffsetY;
+    } else {
+      this.setGapOffset(gap, collapse.axis, onSecond ? collapse.gap : 0);
+    }
+    this.syncObjectGap(box);
   }
 }

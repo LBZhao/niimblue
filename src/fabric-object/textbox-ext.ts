@@ -1,10 +1,13 @@
 import * as fabric from "fabric";
 
+export type LabelTextRole = "primary" | "secondary" | "date";
+
 interface UniqueTextboxExtProps {
   fontAutoSize: boolean;
+  labelRole?: LabelTextRole;
 }
 
-const TEXTBOX_PROPS: Array<keyof UniqueTextboxExtProps> = ["fontAutoSize"];
+const TEXTBOX_PROPS: Array<keyof UniqueTextboxExtProps> = ["fontAutoSize", "labelRole"];
 
 export const textboxExtDefaultValues: Partial<fabric.TClassProperties<TextboxExt>> = {
   fontAutoSize: false,
@@ -22,6 +25,9 @@ export class TextboxExt<
   implements UniqueTextboxExtProps
 {
   declare fontAutoSize: boolean;
+  declare labelRole?: LabelTextRole;
+  /** Text last placed by the label fitter. Not saved. */
+  lastLayoutText?: string;
 
   private widthBeforeEditing?: number;
 

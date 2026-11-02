@@ -66,12 +66,16 @@
 
   const loadLabelData = async (data: ExportedLabelTemplate) => {
     undo.paused = true;
+    const canvas = fabricCanvas!;
+    canvas.suspendManagedLayout = true;
     onUpdateLabelProps(data.label);
     if (data.csv) {
       $csvData = data.csv;
       csvEnabled = true;
     }
-    await FileUtils.loadCanvasState(fabricCanvas!, data.canvas);
+    await FileUtils.loadCanvasState(canvas, data.canvas);
+    canvas.suspendManagedLayout = false;
+    canvas.layoutManagedText();
     undo.paused = false;
   };
 
@@ -155,6 +159,7 @@
     labelProps = newProps;
     fabricCanvas!.setDimensions(labelProps.size);
     fabricCanvas!.virtualZoom(fabricCanvas!.getVirtualZoom());
+    fabricCanvas!.setLabelProps(labelProps);
     try {
       LocalStoragePersistence.saveLastLabelProps(labelProps);
       undo.push(fabricCanvas!, labelProps);
@@ -168,7 +173,7 @@
   };
 
   const onLoadRequested = (label: ExportedLabelTemplate) => {
-    loadLabelData(label).then(() => undo.push(fabricCanvas!, labelProps));
+    return loadLabelData(label).then(() => undo.push(fabricCanvas!, labelProps));
   };
 
   const zplImageReady = async (img: Blob) => {
@@ -286,7 +291,7 @@
       const urlTemplate = await FileUtils.readLabelFromUrl();
 
       if (urlTemplate !== null && confirm($tr("params.saved_labels.load.url.warn"))) {
-        onLoadRequested(urlTemplate);
+        await onLoadRequested(urlTemplate);
         Toasts.message($tr("params.saved_labels.load.url.loaded"));
         return true;
       }
@@ -307,14 +312,12 @@
       const defaultTemplate = LocalStoragePersistence.loadDefaultTemplate();
 
       if (defaultTemplate !== null) {
-        onLoadRequested(defaultTemplate);
+        await onLoadRequested(defaultTemplate);
         return;
       }
     } catch (e) {
       Toasts.error(e);
     }
-
-    LabelDesignerObjectHelper.addText(fabricCanvas!, $tr("editor.default_text"));
   };
 
   const renderOnFontsChanged = () => {
@@ -323,6 +326,7 @@
         o.dirty = true;
       }
     });
+    fabricCanvas?.layoutManagedText();
     fabricCanvas?.requestRenderAll();
   };
 
@@ -340,13 +344,20 @@
       width: labelProps.size.width,
       height: labelProps.size.height,
     });
+    fabricCanvas.defaultLabelText = $tr("editor.default_text");
+    fabricCanvas.suspendManagedLayout = true;
     fabricCanvas.setLabelProps(labelProps);
     fabricCanvas.onZoomChange = (z) => {
       zoomText = Math.round(z * 100) + "%";
     };
     fabricCanvas.setGridEnabled(!!$appConfig.gridEnabled);
 
-    await loadDefaultLabel();
+    try {
+      await loadDefaultLabel();
+    } finally {
+      fabricCanvas.suspendManagedLayout = false;
+      fabricCanvas.layoutManagedText();
+    }
 
     window.addEventListener("hashchange", loadLabelFromUrl);
 
@@ -376,6 +387,7 @@
     });
 
     fabricCanvas.on("object:removed", (): void => {
+      if (fabricCanvas?.layoutQuiet) return;
       undo.push(fabricCanvas!, labelProps);
     });
 
