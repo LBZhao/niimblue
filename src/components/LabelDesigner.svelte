@@ -6,7 +6,7 @@
   import { Barcode } from "$/fabric-object/barcode";
   import { QRCode } from "$/fabric-object/qrcode";
   import { iconCodepoints, type MaterialIcon } from "$/styles/mdi_icons";
-  import { appConfig, automation, connectedPrinterName, connectionState, csvData, loadedFonts, printerMeta } from "$/stores";
+  import { appConfig, automation, bundledFontsReady, connectedPrinterName, connectionState, csvData, loadedFonts, printerMeta } from "$/stores";
   import {
     type ExportedLabelTemplate,
     type FabricJson,
@@ -227,6 +227,7 @@
 
   const controlValueUpdated = () => {
     if (selectedObject) {
+      fabricCanvas!.syncManagedFont(selectedObject);
       selectedObject.setCoords();
       selectedObject.dirty = true;
       undo.push(fabricCanvas!, labelProps);
@@ -485,6 +486,12 @@
 
   $effect(() => {
     if ($loadedFonts) {
+      renderOnFontsChanged();
+    }
+  });
+
+  $effect(() => {
+    if ($bundledFontsReady) {
       renderOnFontsChanged();
     }
   });

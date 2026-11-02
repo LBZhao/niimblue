@@ -47,6 +47,8 @@ type MirrorInfo = { pos: fabric.Point; flip: boolean };
 type GapObject = fabric.FabricObject & { gapOffsetX?: number; gapOffsetY?: number };
 
 const extraGapProps = ["gapOffsetX", "gapOffsetY"];
+
+const fontKey = (box: TextboxExt): string => `${box.fontFamily}|${box.fontWeight}|${box.fontStyle}`;
 for (const prop of extraGapProps) {
   if (!fabric.FabricObject.customProperties.includes(prop)) {
     fabric.FabricObject.customProperties.push(prop);
@@ -969,6 +971,10 @@ export class CustomCanvas extends fabric.Canvas {
       if (mode === "all" || mode === "primary") this.fitPrimary(frames);
       if (mode === "all" || mode === "primary" || mode === "secondary") this.fitSecondary(frames);
       if (date) this.bringObjectToFront(date);
+      for (const role of ["primary", "secondary"] as const) {
+        const box = this.findRole(role);
+        if (box) box.lastLayoutFont = fontKey(box);
+      }
       this.requestRenderAll();
     } finally {
       this.layoutQuiet = false;
@@ -996,6 +1002,24 @@ export class CustomCanvas extends fabric.Canvas {
     }
   }
 
+  /**
+   * Call after a text control changed a managed box. A new main font carries over to the copy
+   * and the date, then the label refits. Size-only edits are left alone.
+   */
+  syncManagedFont(target?: fabric.FabricObject) {
+    if (!(target instanceof TextboxExt)) return;
+    if (target.labelRole !== "primary" && target.labelRole !== "secondary") return;
+    if (fontKey(target) === target.lastLayoutFont) return;
+    if (target.labelRole === "primary") {
+      const { fontFamily, fontWeight, fontStyle } = target;
+      this.findRole("secondary")?.set({ fontFamily, fontWeight, fontStyle });
+      this.findRole("date")?.set({ fontFamily });
+      this.layoutManagedText("all");
+    } else {
+      this.layoutManagedText("secondary");
+    }
+  }
+
   private textboxes(): TextboxExt[] {
     return this.getObjects().filter((obj): obj is TextboxExt => obj instanceof TextboxExt);
   }
@@ -1005,8 +1029,11 @@ export class CustomCanvas extends fabric.Canvas {
   }
 
   private createRole(role: "primary" | "secondary" | "date", text: string): TextboxExt {
+    // A new copy or date uses the main text's font.
+    const primary = role === "primary" ? undefined : this.findRole("primary");
     const box = new TextboxExt(text, {
       ...OBJECT_DEFAULTS_TEXT,
+      ...(primary ? { fontFamily: primary.fontFamily } : {}),
       labelRole: role,
     });
     this.add(box);

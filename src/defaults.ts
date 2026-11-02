@@ -83,6 +83,15 @@ export const OBJECT_DEFAULTS_TEXT = {
   lineHeight: 1,
 } as fabric.TextboxProps;
 
+/** Fonts shipped with the app for label text (see styles/font.scss). Default first. */
+export const BUNDLED_FONTS: string[] = [
+  "Noto Sans Variable",
+  "Barlow Semi Condensed",
+  "Roboto Condensed",
+  "IBM Plex Sans Condensed",
+  "Atkinson Hyperlegible Next",
+];
+
 /** Scale image to this height when making a label thumbnail */
 export const THUMBNAIL_HEIGHT = 48;
 

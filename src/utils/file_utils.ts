@@ -8,13 +8,13 @@ import {
   type LabelPreset,
   type LabelProps,
 } from "$/types";
-import { OBJECT_DEFAULTS, OBJECT_DEFAULTS_VECTOR, THUMBNAIL_HEIGHT, THUMBNAIL_QUALITY } from "$/defaults";
+import { BUNDLED_FONTS, OBJECT_DEFAULTS, OBJECT_DEFAULTS_VECTOR, THUMBNAIL_HEIGHT, THUMBNAIL_QUALITY } from "$/defaults";
 import { z } from "zod";
 import { CustomCanvas } from "$/fabric-object/custom_canvas";
 import { Capacitor } from "@capacitor/core";
 import { CanvasUtils } from "$/utils/canvas_utils";
 import { LocalStoragePersistence } from "./persistence";
-import { csvData, loadedFonts } from "$/stores";
+import { bundledFontsReady, csvData, loadedFonts } from "$/stores";
 import { get } from "svelte/store";
 
 export class FileUtils {
@@ -425,6 +425,19 @@ export class FileUtils {
     const decoded = decoder.decode(decompressed);
     const labelObj = JSON.parse(decoded);
     return ExportedLabelTemplateSchema.parse(labelObj);
+  }
+
+  /**
+   * Canvas text does not trigger @font-face downloads, and Fabric caches glyph widths per family.
+   * Load every weight up front, then drop widths measured with a fallback font.
+   */
+  static async loadBundledFonts() {
+    const weights = [400, 500, 600, 700];
+    await Promise.allSettled(
+      BUNDLED_FONTS.flatMap((family) => weights.map((w) => document.fonts.load(`${w} 16px "${family}"`))),
+    );
+    BUNDLED_FONTS.forEach((family) => fabric.cache.clearFontCache(family));
+    bundledFontsReady.set(true);
   }
 
   static async loadFonts(fontsToLoad: UserFont[]) {

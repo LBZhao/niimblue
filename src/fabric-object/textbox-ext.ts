@@ -28,6 +28,8 @@ export class TextboxExt<
   declare labelRole?: LabelTextRole;
   /** Text last placed by the label fitter. Not saved. */
   lastLayoutText?: string;
+  /** Font (family, weight, style) the fitter last sized this box with. Not saved. */
+  lastLayoutFont?: string;
 
   private widthBeforeEditing?: number;
 

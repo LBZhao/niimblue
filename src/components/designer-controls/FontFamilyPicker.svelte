@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { OBJECT_DEFAULTS_TEXT } from "$/defaults";
+  import { BUNDLED_FONTS, OBJECT_DEFAULTS_TEXT } from "$/defaults";
   import { tr } from "$/utils/i18n";
   import { Toasts } from "$/utils/toasts";
   import MdIcon from "$/components/basic/MdIcon.svelte";
@@ -20,7 +20,13 @@
   let searchString = $state<string>("");
 
   let systemFontsFiltered = $derived.by<string[]>(() => {
-    return $fontCache.filter((e) => e.toLowerCase().includes(searchString.toLowerCase()));
+    return $fontCache.filter(
+      (e) => !BUNDLED_FONTS.includes(e) && e.toLowerCase().includes(searchString.toLowerCase()),
+    );
+  });
+
+  let bundledFontsFiltered = $derived.by<string[]>(() => {
+    return BUNDLED_FONTS.filter((e) => e.toLowerCase().includes(searchString.toLowerCase()));
   });
 
   let userFontsFiltered = $derived.by<string[]>(() => {
@@ -79,6 +85,15 @@
         placeholder={$tr("params.text.font_family.search")}
         bind:value={searchString} />
     </div>
+
+    {#if bundledFontsFiltered.length > 0}
+      <h6 class="dropdown-header">{$tr("params.text.label_fonts")}</h6>
+      {#each bundledFontsFiltered as family (family)}
+        <button class="dropdown-item" style="font-family: '{family}'" type="button" onclick={() => fontClick(family)}>
+          {family}
+        </button>
+      {/each}
+    {/if}
 
     {#if userFontsFiltered.length > 0}
       <h6 class="dropdown-header">{$tr("params.text.user_fonts")}</h6>

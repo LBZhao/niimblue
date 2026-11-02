@@ -34,6 +34,8 @@ export const appConfig = writablePersisted<AppConfig>("config", AppConfigSchema,
 export const userIcons = writablePersisted<UserIcon[]>("user_icons", z.array(UserIconSchema), []);
 export const userFonts = writablePersisted<UserFont[]>("user_fonts", z.array(UserFontSchema), []);
 export const loadedFonts = writable<FontFace[]>([]);
+/** True once the bundled label fonts are loaded and safe to measure. */
+export const bundledFontsReady = writable<boolean>(false);
 
 export const connectionState = writable<ConnectionState>("disconnected");
 export const connectedPrinterName = writable<string>("");

@@ -6,8 +6,10 @@ import "bootstrap/js/dist/collapse";
 import App from "$/App.svelte";
 import { mount } from "svelte";
 import { configureFabric } from "$/defaults";
+import { FileUtils } from "$/utils/file_utils";
 
 configureFabric();
+FileUtils.loadBundledFonts();
 
 const app = mount(App, {
   target: document.getElementById("app")!,
