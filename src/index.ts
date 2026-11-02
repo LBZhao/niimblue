@@ -9,7 +9,7 @@ import { configureFabric } from "$/defaults";
 import { FileUtils } from "$/utils/file_utils";
 
 configureFabric();
-FileUtils.loadBundledFonts();
+FileUtils.loadBundledFonts().then(() => FileUtils.refreshStoredThumbnails());
 
 const app = mount(App, {
   target: document.getElementById("app")!,

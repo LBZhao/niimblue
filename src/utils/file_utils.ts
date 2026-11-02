@@ -14,7 +14,7 @@ import { CustomCanvas } from "$/fabric-object/custom_canvas";
 import { Capacitor } from "@capacitor/core";
 import { CanvasUtils } from "$/utils/canvas_utils";
 import { LocalStoragePersistence } from "./persistence";
-import { bundledFontsReady, csvData, loadedFonts } from "$/stores";
+import { bundledFontsReady, csvData, loadedFonts, recentPrints } from "$/stores";
 import { get } from "svelte/store";
 
 export class FileUtils {
@@ -438,6 +438,55 @@ export class FileUtils {
     );
     BUNDLED_FONTS.forEach((family) => fabric.cache.clearFontCache(family));
     bundledFontsReady.set(true);
+  }
+
+  /** Draw a fresh thumbnail for a stored label, the same way saving does. */
+  static async renderThumbnail(tpl: ExportedLabelTemplate): Promise<string | undefined> {
+    const canvas = new CustomCanvas(undefined, { width: tpl.label.size.width, height: tpl.label.size.height });
+    try {
+      canvas.suspendManagedLayout = true;
+      canvas.setLabelProps(tpl.label);
+      await FileUtils.loadCanvasState(canvas, tpl.canvas);
+      canvas.suspendManagedLayout = false;
+      canvas.layoutManagedText();
+      return FileUtils.makeExportedLabel(canvas, tpl.label, false).thumbnailBase64;
+    } finally {
+      canvas.dispose();
+    }
+  }
+
+  /**
+   * Thumbnails saved before the scaled-export fix are missing the label shapes.
+   * Redraw saved labels and recent prints once.
+   */
+  static async refreshStoredThumbnails() {
+    const flag = "thumbnails_v2";
+    if (localStorage.getItem(flag) !== null) return;
+
+    for (const key of Object.keys(localStorage).filter((k) => k.startsWith("saved_label"))) {
+      try {
+        const item = LocalStoragePersistence.loadAndValidateObject(key, ExportedLabelTemplateSchema);
+        if (item === null) continue;
+        item.thumbnailBase64 = await FileUtils.renderThumbnail(item);
+        LocalStoragePersistence.validateAndSaveObject(key, item, ExportedLabelTemplateSchema.omit({ id: true }));
+      } catch (e) {
+        console.error(`Thumbnail refresh failed for ${key}:`, e);
+      }
+    }
+
+    const recent = get(recentPrints);
+    const redrawn: ExportedLabelTemplate[] = [];
+    for (const item of recent) {
+      try {
+        redrawn.push({ ...item, thumbnailBase64: await FileUtils.renderThumbnail(item) });
+      } catch (e) {
+        console.error("Thumbnail refresh failed for a recent print:", e);
+        redrawn.push(item);
+      }
+    }
+    if (recent.length > 0) recentPrints.set(redrawn);
+
+    localStorage.setItem(flag, "1");
   }
 
   static async loadFonts(fontsToLoad: UserFont[]) {

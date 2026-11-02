@@ -39,6 +39,9 @@
   import VectorParamsControls from "$/components/designer-controls/VectorParamsControls.svelte";
   import { CanvasUtils } from "$/utils/canvas_utils";
   import { isM2Printer } from "$/utils/print_direction";
+  import RecentPrints from "$/components/designer-controls/RecentPrints.svelte";
+  import { rememberPrintedLabel } from "$/utils/recent_prints";
+  import { z } from "zod";
 
   let htmlCanvas: HTMLCanvasElement;
 
@@ -174,6 +177,21 @@
 
   const onLoadRequested = (label: ExportedLabelTemplate) => {
     return loadLabelData(label).then(() => undo.push(fabricCanvas!, labelProps));
+  };
+
+  /** One tap, no confirm. Undo brings back the previous label. */
+  const loadRecentPrint = (label: ExportedLabelTemplate) => {
+    discardSelection();
+    onLoadRequested(label).catch((e) => Toasts.error(e));
+  };
+
+  const onPrinted = () => {
+    try {
+      rememberPrintedLabel(exportCurrentLabel());
+    } catch (e) {
+      if (e instanceof z.ZodError) Toasts.zodErrors(e, "Recent prints save error:");
+      else Toasts.error(e);
+    }
   };
 
   const zplImageReady = async (img: Blob) => {
@@ -574,6 +592,12 @@
 
   <div class="row mb-1">
     <div class="col d-flex justify-content-center">
+      <RecentPrints onLoad={loadRecentPrint} />
+    </div>
+  </div>
+
+  <div class="row mb-1">
+    <div class="col d-flex justify-content-center">
       <div class="toolbar d-flex flex-wrap gap-1 justify-content-center align-items-center">
         {#if selectedCount > 0}
           <button class="btn btn-sm btn-danger me-1" onclick={deleteSelected} title={$tr("editor.delete")}>
@@ -625,7 +649,8 @@
       {labelProps}
       {printNow}
       {csvEnabled}
-      csvData={$csvData.data} />
+      csvData={$csvData.data}
+      {onPrinted} />
   {/if}
 </div>
 

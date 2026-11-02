@@ -2,12 +2,14 @@ import { get, readable, writable } from "svelte/store";
 import {
   AppConfigSchema,
   CsvParamsSchema,
+  ExportedLabelTemplateSchema,
   UserFontSchema,
   UserIconSchema,
   type CsvParams,
   type UserFont,
   type UserIcon,
   type AppConfig,
+  type ExportedLabelTemplate,
   type AutomationProps,
   type ConnectionState,
   type ConnectionType,
@@ -46,6 +48,12 @@ export const rfidInfo = writable<CombinedRfidInfo>({});
 export const printerMeta = writable<PrinterModelMeta | undefined>();
 export const heartbeatFails = writable<number>(0);
 export const csvData = writablePersisted<CsvParams>("csv_params", CsvParamsSchema, { data: CSV_DEFAULT });
+/** Labels printed most recently, newest first. */
+export const recentPrints = writablePersisted<ExportedLabelTemplate[]>(
+  "recent_prints",
+  z.array(ExportedLabelTemplateSchema),
+  [],
+);
 
 userFonts.subscribe(FileUtils.loadFonts);
 

@@ -92,6 +92,9 @@ export const BUNDLED_FONTS: string[] = [
   "Atkinson Hyperlegible Next",
 ];
 
+/** How many recently printed labels to keep for one-tap reload */
+export const RECENT_PRINTS_LIMIT = 8;
+
 /** Scale image to this height when making a label thumbnail */
 export const THUMBNAIL_HEIGHT = 48;
 

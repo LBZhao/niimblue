@@ -42,9 +42,11 @@
     csvData: string;
     csvEnabled: boolean;
     show: boolean;
+    /** Called after a print finished without errors. */
+    onPrinted?: () => void;
   }
 
-  let { labelProps, canvasCallback, printNow = false, csvData, csvEnabled, show = $bindable() }: Props = $props();
+  let { labelProps, canvasCallback, printNow = false, csvData, csvEnabled, show = $bindable(), onPrinted }: Props = $props();
 
   let previewCanvas: HTMLCanvasElement;
   let printState = $state<"idle" | "printing">("idle");
@@ -115,6 +117,7 @@
     }
 
     FileUtils.printImageUrls(sources);
+    onPrinted?.();
   };
 
   const onPrint = async () => {
@@ -185,6 +188,10 @@
     $printerClient.off("printprogress", printListener);
     $printerClient.off("printpacketprogress", sendListener);
     $printerClient.startHeartbeat();
+
+    if (!error) {
+      onPrinted?.();
+    }
 
     if (printNow && !error) {
       modalRef.hide();
