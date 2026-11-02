@@ -93,7 +93,7 @@ export const BUNDLED_FONTS: string[] = [
 ];
 
 /** How many recently printed labels to keep for one-tap reload */
-export const RECENT_PRINTS_LIMIT = 8;
+export const RECENT_PRINTS_LIMIT = 20;
 
 /** Scale image to this height when making a label thumbnail */
 export const THUMBNAIL_HEIGHT = 48;

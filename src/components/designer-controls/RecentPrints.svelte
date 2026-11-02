@@ -19,7 +19,7 @@
       <MdIcon icon="history" />
       {$tr("editor.recent_prints")}
     </div>
-    <div class="d-flex flex-column gap-1">
+    <div class="recent-list d-flex flex-column gap-1">
       {#each $recentPrints as item, idx (idx)}
         {@const name = recentPrintName(item)}
         <button class="btn btn-outline-secondary recent-item p-1" title={name} onclick={() => onLoad(item)}>
@@ -35,10 +35,18 @@
 {/if}
 
 <style>
-  /* One column under the buttons, about as wide as a phone screen. */
+  /* One column under the buttons, a little narrower than the screen. */
   .recent-prints {
-    width: 100%;
-    max-width: 420px;
+    width: 90%;
+    max-width: 378px;
+  }
+
+  /* Its own scroll area: swipe up and down without moving the page. */
+  .recent-list {
+    max-height: 45vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
   .recent-item {
@@ -49,7 +57,7 @@
   /* Wide labels fill the width; tall labels stop at this height. */
   .recent-item img {
     max-width: 100%;
-    max-height: 112px;
+    max-height: 101px;
     border-radius: 2px;
   }
 
