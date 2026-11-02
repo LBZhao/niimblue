@@ -6,7 +6,16 @@
   import { Barcode } from "$/fabric-object/barcode";
   import { QRCode } from "$/fabric-object/qrcode";
   import { iconCodepoints, type MaterialIcon } from "$/styles/mdi_icons";
-  import { appConfig, automation, bundledFontsReady, connectedPrinterName, connectionState, csvData, loadedFonts, printerMeta } from "$/stores";
+  import {
+    appConfig,
+    automation,
+    bundledFontsReady,
+    connectedPrinterName,
+    connectionState,
+    csvData,
+    loadedFonts,
+    printerMeta,
+  } from "$/stores";
   import {
     type ExportedLabelTemplate,
     type FabricJson,
@@ -32,7 +41,7 @@
   import QrCodeParamsPanel from "$/components/designer-controls/QRCodeParamsControls.svelte";
   import TextParamsControls from "$/components/designer-controls/TextParamsControls.svelte";
   import VariableInsertControl from "$/components/designer-controls/VariableInsertControl.svelte";
-  import { DEFAULT_LABEL_PROPS, GRID_SIZE, OBJECT_DEFAULTS } from "$/defaults";
+  import { DEFAULT_LABEL_PROPS, GRID_SIZE, OBJECT_DEFAULTS, RECENT_THUMBNAIL_HEIGHT } from "$/defaults";
   import { LabelDesignerUtils } from "$/utils/label_designer_utils";
   import SavedLabelsMenu from "$/components/designer-controls/SavedLabelsMenu.svelte";
   import { CustomCanvas } from "$/fabric-object/custom_canvas";
@@ -44,6 +53,7 @@
   import { z } from "zod";
 
   let htmlCanvas: HTMLCanvasElement;
+  let canvasColumn: HTMLDivElement;
 
   let fabricCanvas = $state<CustomCanvas>();
   let labelProps = $state<LabelProps>(DEFAULT_LABEL_PROPS);
@@ -158,11 +168,20 @@
     }
   };
 
+  /** Shrink the label to the screen width. Wide screens keep 100%. */
+  const fitZoomToScreen = () => {
+    if (!fabricCanvas || !canvasColumn) return;
+    const style = getComputedStyle(canvasColumn);
+    // Column padding plus the 1px wrapper border on each side.
+    const available = canvasColumn.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2;
+    fabricCanvas.fitToWidth(available);
+  };
+
   const onUpdateLabelProps = (newProps: LabelProps) => {
     labelProps = newProps;
     fabricCanvas!.setDimensions(labelProps.size);
-    fabricCanvas!.virtualZoom(fabricCanvas!.getVirtualZoom());
     fabricCanvas!.setLabelProps(labelProps);
+    fitZoomToScreen();
     try {
       LocalStoragePersistence.saveLastLabelProps(labelProps);
       undo.push(fabricCanvas!, labelProps);
@@ -187,7 +206,7 @@
 
   const onPrinted = () => {
     try {
-      rememberPrintedLabel(exportCurrentLabel());
+      rememberPrintedLabel(FileUtils.makeExportedLabel(fabricCanvas!, labelProps, csvEnabled, RECENT_THUMBNAIL_HEIGHT));
     } catch (e) {
       if (e instanceof z.ZodError) Toasts.zodErrors(e, "Recent prints save error:");
       else Toasts.error(e);
@@ -318,7 +337,7 @@
       Toasts.error(e);
     }
     return false;
-  }
+  };
 
   const loadDefaultLabel = async () => {
     const urlLoaded = await loadLabelFromUrl();
@@ -376,6 +395,7 @@
     } finally {
       fabricCanvas.suspendManagedLayout = false;
       fabricCanvas.layoutManagedText();
+      fitZoomToScreen();
     }
 
     window.addEventListener("hashchange", loadLabelFromUrl);
@@ -496,6 +516,11 @@
     onUpdateLabelProps({ ...labelProps, printDirection: "top" });
   });
 
+  // Rotating the phone or resizing the window refits the label.
+  $effect(() => {
+    if (windowWidth > 0) fitZoomToScreen();
+  });
+
   $effect(() => {
     if (!previewOpened) {
       printNow = false;
@@ -519,7 +544,7 @@
 
 <div class="image-editor">
   <div class="row mb-3">
-    <div class="col d-flex justify-content-center">
+    <div class="col d-flex justify-content-center" bind:this={canvasColumn}>
       <div class="canvas-wrapper print-start-{labelProps.printDirection}">
         <canvas bind:this={htmlCanvas}></canvas>
       </div>
@@ -564,10 +589,7 @@
           <MdIcon icon="grid_on" />
         </button>
 
-        <button
-          class="btn btn-sm btn-secondary"
-          onclick={() => fabricCanvas?.resetVirtualZoom()}
-          title="Reset zoom">
+        <button class="btn btn-sm btn-secondary" onclick={fitZoomToScreen} title="Fit to screen">
           {zoomText}
         </button>
 
@@ -575,7 +597,7 @@
 
         <IconPicker onSubmit={onIconPicked} onSubmitSvg={onSvgIconPicked} />
 
-        <ObjectPicker onSubmit={onObjectPicked} {labelProps} {zplImageReady} {pdfImageReady}  />
+        <ObjectPicker onSubmit={onObjectPicked} {labelProps} {zplImageReady} {pdfImageReady} />
 
         <button class="btn btn-sm btn-primary ms-1" onclick={openPreview}>
           <MdIcon icon="visibility" />
@@ -587,12 +609,6 @@
           onclick={openPreviewAndPrint}
           disabled={$connectionState !== "connected"}><MdIcon icon="print" /> {$tr("editor.print")}</button>
       </div>
-    </div>
-  </div>
-
-  <div class="row mb-1">
-    <div class="col d-flex justify-content-center">
-      <RecentPrints onLoad={loadRecentPrint} />
     </div>
   </div>
 
@@ -639,6 +655,13 @@
           <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
         {/if}
       </div>
+    </div>
+  </div>
+
+  <!-- Below the selection controls, so they stay next to the canvas. -->
+  <div class="row mb-1">
+    <div class="col d-flex justify-content-center">
+      <RecentPrints onLoad={loadRecentPrint} />
     </div>
   </div>
 

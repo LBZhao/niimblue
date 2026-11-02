@@ -98,6 +98,9 @@ export const RECENT_PRINTS_LIMIT = 8;
 /** Scale image to this height when making a label thumbnail */
 export const THUMBNAIL_HEIGHT = 48;
 
+/** Recent prints are shown larger, so their thumbnails are taller */
+export const RECENT_THUMBNAIL_HEIGHT = 112;
+
 /** Generate thumbnail in jpeg format with this quality */
 export const THUMBNAIL_QUALITY = 0.7;
 

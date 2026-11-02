@@ -230,6 +230,18 @@ export class CustomCanvas extends fabric.Canvas {
     this.applyEditorClip();
   }
 
+  /** Width the editor shows at 100%, after pulling the split pieces together. */
+  public editorWidth(): number {
+    const collapse = this.layoutGapShift();
+    return this.getWidth() - (collapse?.axis === "vertical" ? collapse.gap : 0);
+  }
+
+  /** Zoom out so the label fits `available` CSS pixels. Never zooms in past 100%. */
+  public fitToWidth(available: number) {
+    if (!(available > 0)) return;
+    this.virtualZoom(Math.min(1, available / this.editorWidth()));
+  }
+
   /**
    * Draw the real gray gap, then restore the editor view.
    * Used for saved-label thumbnails.

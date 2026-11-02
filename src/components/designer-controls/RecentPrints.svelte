@@ -14,12 +14,15 @@
 </script>
 
 {#if $recentPrints.length > 0}
-  <div class="recent-prints d-flex align-items-center gap-1" title={$tr("editor.recent_prints")}>
-    <MdIcon icon="history" class="text-secondary flex-shrink-0" />
-    <div class="recent-list d-flex gap-1">
+  <div class="recent-prints">
+    <div class="recent-title text-secondary small d-flex align-items-center gap-1 mb-1">
+      <MdIcon icon="history" />
+      {$tr("editor.recent_prints")}
+    </div>
+    <div class="d-flex flex-column gap-1">
       {#each $recentPrints as item, idx (idx)}
         {@const name = recentPrintName(item)}
-        <button class="btn btn-sm btn-outline-secondary recent-item p-1" title={name} onclick={() => onLoad(item)}>
+        <button class="btn btn-outline-secondary recent-item p-1" title={name} onclick={() => onLoad(item)}>
           {#if item.thumbnailBase64}
             <img src={item.thumbnailBase64} alt={name} />
           {:else}
@@ -32,31 +35,28 @@
 {/if}
 
 <style>
+  /* One column under the buttons, about as wide as a phone screen. */
   .recent-prints {
-    max-width: 100%;
-  }
-
-  .recent-list {
-    overflow-x: auto;
-    scrollbar-width: thin;
-    padding-bottom: 2px;
+    width: 100%;
+    max-width: 420px;
   }
 
   .recent-item {
-    flex-shrink: 0;
+    width: 100%;
     line-height: 0;
   }
 
+  /* Wide labels fill the width; tall labels stop at this height. */
   .recent-item img {
-    height: 40px;
-    width: auto;
+    max-width: 100%;
+    max-height: 112px;
     border-radius: 2px;
   }
 
   .recent-name {
     display: inline-block;
-    line-height: 40px;
-    max-width: 8em;
+    line-height: 48px;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

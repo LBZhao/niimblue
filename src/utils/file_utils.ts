@@ -8,7 +8,14 @@ import {
   type LabelPreset,
   type LabelProps,
 } from "$/types";
-import { BUNDLED_FONTS, OBJECT_DEFAULTS, OBJECT_DEFAULTS_VECTOR, THUMBNAIL_HEIGHT, THUMBNAIL_QUALITY } from "$/defaults";
+import {
+  BUNDLED_FONTS,
+  OBJECT_DEFAULTS,
+  OBJECT_DEFAULTS_VECTOR,
+  RECENT_THUMBNAIL_HEIGHT,
+  THUMBNAIL_HEIGHT,
+  THUMBNAIL_QUALITY,
+} from "$/defaults";
 import { z } from "zod";
 import { CustomCanvas } from "$/fabric-object/custom_canvas";
 import { Capacitor } from "@capacitor/core";
@@ -145,18 +152,25 @@ export class FileUtils {
     FileUtils.downloadBase64Web(filename, mime, base64Data);
   }
 
-  static makeExportedLabel(canvas: fabric.Canvas, labelProps: LabelProps, includeCsv: boolean): ExportedLabelTemplate {
+  static makeExportedLabel(
+    canvas: fabric.Canvas,
+    labelProps: LabelProps,
+    includeCsv: boolean,
+    thumbnailHeight: number = THUMBNAIL_HEIGHT,
+  ): ExportedLabelTemplate {
     const thumbnailOptions = {
       width: canvas.width,
       height: canvas.height,
       left: 0,
       top: 0,
-      multiplier: THUMBNAIL_HEIGHT / (canvas.height || 1),
+      multiplier: thumbnailHeight / (canvas.height || 1),
       quality: THUMBNAIL_QUALITY,
       format: "jpeg" as const,
     };
     const thumbnailBase64: string =
-      canvas instanceof CustomCanvas ? canvas.withPhysicalGap(() => canvas.toDataURL(thumbnailOptions)) : canvas.toDataURL(thumbnailOptions);
+      canvas instanceof CustomCanvas
+        ? canvas.withPhysicalGap(() => canvas.toDataURL(thumbnailOptions))
+        : canvas.toDataURL(thumbnailOptions);
 
     const tpl: ExportedLabelTemplate = {
       canvas: canvas.toJSON(),
@@ -441,7 +455,10 @@ export class FileUtils {
   }
 
   /** Draw a fresh thumbnail for a stored label, the same way saving does. */
-  static async renderThumbnail(tpl: ExportedLabelTemplate): Promise<string | undefined> {
+  static async renderThumbnail(
+    tpl: ExportedLabelTemplate,
+    height: number = THUMBNAIL_HEIGHT,
+  ): Promise<string | undefined> {
     const canvas = new CustomCanvas(undefined, { width: tpl.label.size.width, height: tpl.label.size.height });
     try {
       canvas.suspendManagedLayout = true;
@@ -449,7 +466,7 @@ export class FileUtils {
       await FileUtils.loadCanvasState(canvas, tpl.canvas);
       canvas.suspendManagedLayout = false;
       canvas.layoutManagedText();
-      return FileUtils.makeExportedLabel(canvas, tpl.label, false).thumbnailBase64;
+      return FileUtils.makeExportedLabel(canvas, tpl.label, false, height).thumbnailBase64;
     } finally {
       canvas.dispose();
     }
@@ -457,13 +474,14 @@ export class FileUtils {
 
   /**
    * Thumbnails saved before the scaled-export fix are missing the label shapes.
-   * Redraw saved labels and recent prints once.
+   * Redraw saved labels once, and recent prints once at their larger size.
    */
   static async refreshStoredThumbnails() {
-    const flag = "thumbnails_v2";
-    if (localStorage.getItem(flag) !== null) return;
+    const savedFlag = "thumbnails_v2";
+    const recentFlag = "recent_thumbnails_v3";
 
-    for (const key of Object.keys(localStorage).filter((k) => k.startsWith("saved_label"))) {
+    const savedKeys = localStorage.getItem(savedFlag) === null ? Object.keys(localStorage) : [];
+    for (const key of savedKeys.filter((k) => k.startsWith("saved_label"))) {
       try {
         const item = LocalStoragePersistence.loadAndValidateObject(key, ExportedLabelTemplateSchema);
         if (item === null) continue;
@@ -474,19 +492,21 @@ export class FileUtils {
       }
     }
 
+    localStorage.setItem(savedFlag, "1");
+    if (localStorage.getItem(recentFlag) !== null) return;
+
     const recent = get(recentPrints);
     const redrawn: ExportedLabelTemplate[] = [];
     for (const item of recent) {
       try {
-        redrawn.push({ ...item, thumbnailBase64: await FileUtils.renderThumbnail(item) });
+        redrawn.push({ ...item, thumbnailBase64: await FileUtils.renderThumbnail(item, RECENT_THUMBNAIL_HEIGHT) });
       } catch (e) {
         console.error("Thumbnail refresh failed for a recent print:", e);
         redrawn.push(item);
       }
     }
     if (recent.length > 0) recentPrints.set(redrawn);
-
-    localStorage.setItem(flag, "1");
+    localStorage.setItem(recentFlag, "1");
   }
 
   static async loadFonts(fontsToLoad: UserFont[]) {
