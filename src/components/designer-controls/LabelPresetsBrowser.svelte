@@ -21,7 +21,8 @@
   };
 
   let { class: className = "", onItemDelete, onItemSelected, presets }: Props = $props();
-  let deleteIndex = $state<number>(-1);
+  /** Edit mode shows a large delete button on each tile and stops taps from applying presets. */
+  let editing = $state<boolean>(false);
 
   /** Same corner radius as the editor (10 px), in the preset's unit. */
   const cornerRadius = (preset: LabelPreset): number => (preset.unit === "mm" ? 10 / preset.dpmm : 10);
@@ -97,91 +98,107 @@
   /** Shown under untitled presets, since the size alone does not say which printer it is for. */
   const presetDpi = (preset: LabelPreset): string => (preset.title ? "" : `${Math.round(preset.dpmm * 25.4)} dpi`);
 
-  const deleteConfirmed = (e: MouseEvent, idx: number) => {
+  const onTileClick = (idx: number) => {
+    if (editing) return;
+    onItemSelected(idx);
+  };
+
+  const deleteClicked = (e: MouseEvent, idx: number) => {
     e.stopPropagation();
-    deleteIndex = -1;
+    const name = presetName(presets[idx]);
+    if (!confirm($tr("params.label.presets.delete.confirm").replace("{name}", name))) return;
     onItemDelete(idx);
+    if (presets.length <= 1) editing = false;
   };
 
-  const deleteRejected = (e: MouseEvent) => {
+  const toggleEditing = (e: MouseEvent) => {
+    // Keep the label properties dropdown open.
     e.stopPropagation();
-    deleteIndex = -1;
-  };
-
-  const deleteRequested = (e: MouseEvent, idx: number) => {
-    e.stopPropagation();
-    deleteIndex = idx;
+    editing = !editing;
   };
 </script>
 
-<div class="preset-browser overflow-y-auto border d-flex p-2 gap-2 flex-wrap {className}">
-  {#each presets as item, idx (idx)}
-    {@const o = outline(item)}
-    <div
-      role="button"
-      class="preset-tile btn btn-outline-secondary p-1 d-flex flex-column align-items-center"
-      tabindex="0"
-      title={presetName(item)}
-      onkeydown={() => onItemSelected(idx)}
-      onclick={() => onItemSelected(idx)}>
-      <svg class="preset-shape" viewBox="0 0 {o.width} {o.height}" preserveAspectRatio="xMidYMid meet">
-        {#if o.tail}
-          <rect x={o.tail.x} y={o.tail.y} width={o.tail.width} height={o.tail.height} class="tail" />
-        {/if}
-        {#each o.pieces as p, pIdx (pIdx)}
-          {#if p.shape === "circle"}
-            <circle
-              cx={p.x + p.width / 2}
-              cy={p.y + p.height / 2}
-              r={Math.min(p.width, p.height) / 2}
-              class="piece" />
-          {:else}
-            {@const r = p.shape === "rounded_rect" ? Math.min(o.radius, p.width / 2, p.height / 2) : 0}
-            <rect x={p.x} y={p.y} width={p.width} height={p.height} rx={r} ry={r} class="piece" />
+<div class="preset-browser border {className}">
+  {#if presets.length > 0}
+    <div class="d-flex justify-content-end px-2 pt-2">
+      <button class="btn btn-sm {editing ? 'btn-primary' : 'btn-outline-secondary'}" onclick={toggleEditing}>
+        <MdIcon icon={editing ? "check" : "edit"} />
+        {editing ? $tr("params.label.presets.done") : $tr("params.label.presets.edit")}
+      </button>
+    </div>
+  {/if}
+  <div class="preset-list overflow-y-auto p-2">
+    {#each presets as item, idx (idx)}
+      {@const o = outline(item)}
+      <div
+        role="button"
+        class="preset-tile btn btn-outline-secondary p-1 d-flex flex-column align-items-center"
+        class:editing
+        tabindex="0"
+        title={presetName(item)}
+        onkeydown={() => onTileClick(idx)}
+        onclick={() => onTileClick(idx)}>
+        <svg class="preset-shape" viewBox="0 0 {o.width} {o.height}" preserveAspectRatio="xMidYMid meet">
+          {#if o.tail}
+            <rect x={o.tail.x} y={o.tail.y} width={o.tail.width} height={o.tail.height} class="tail" />
           {/if}
-        {/each}
-        <line x1={o.edge.x1} y1={o.edge.y1} x2={o.edge.x2} y2={o.edge.y2} class="print-edge" />
-      </svg>
+          {#each o.pieces as p, pIdx (pIdx)}
+            {#if p.shape === "circle"}
+              <circle
+                cx={p.x + p.width / 2}
+                cy={p.y + p.height / 2}
+                r={Math.min(p.width, p.height) / 2}
+                class="piece" />
+            {:else}
+              {@const r = p.shape === "rounded_rect" ? Math.min(o.radius, p.width / 2, p.height / 2) : 0}
+              <rect x={p.x} y={p.y} width={p.width} height={p.height} rx={r} ry={r} class="piece" />
+            {/if}
+          {/each}
+          <line x1={o.edge.x1} y1={o.edge.y1} x2={o.edge.x2} y2={o.edge.y2} class="print-edge" />
+        </svg>
 
-      <span class="preset-name">{presetName(item)}</span>
-      {#if presetDpi(item)}
-        <span class="preset-dpi">{presetDpi(item)}</span>
-      {/if}
+        <span class="preset-name">{presetName(item)}</span>
+        {#if presetDpi(item)}
+          <span class="preset-dpi">{presetDpi(item)}</span>
+        {/if}
 
-      <div class="remove d-flex">
-        {#if deleteIndex === idx}
-          <button class="btn text-danger-emphasis" onclick={(e) => deleteConfirmed(e, idx)}>
+        {#if editing}
+          <button
+            class="btn btn-danger delete-preset"
+            title={$tr("params.label.presets.delete")}
+            aria-label={$tr("params.label.presets.delete")}
+            onclick={(e) => deleteClicked(e, idx)}>
             <MdIcon icon="delete" />
-          </button>
-          <button class="btn text-success" onclick={(e) => deleteRejected(e)}>
-            <MdIcon icon="close" />
-          </button>
-        {:else}
-          <button class="btn text-secondary" onclick={(e) => deleteRequested(e, idx)}>
-            <MdIcon icon="close" />
           </button>
         {/if}
       </div>
-    </div>
-  {/each}
+    {/each}
+  </div>
 </div>
 
 <style>
   .preset-browser {
-    max-height: 240px;
     max-width: 100%;
+  }
+
+  /* Two columns that share the box width, so tiles grow with the dialog. */
+  .preset-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-height: 300px;
     min-height: 96px;
   }
 
   .preset-tile {
     position: relative;
-    width: 112px;
+    min-width: 0;
     gap: 2px;
   }
 
   .preset-shape {
-    width: 96px;
-    height: 48px;
+    width: 100%;
+    height: 64px;
     margin-top: 10px;
     overflow: visible;
   }
@@ -201,7 +218,7 @@
   }
 
   .preset-name {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     line-height: 1.15;
     max-width: 100%;
     overflow-wrap: anywhere;
@@ -213,15 +230,22 @@
     opacity: 0.7;
   }
 
-  .remove {
-    position: absolute;
-    top: 0;
-    right: 0;
+  .preset-tile.editing {
+    cursor: default;
   }
 
-  .remove > button {
-    padding: 0 2px;
-    line-height: 100%;
-    font-size: 0.85rem;
+  /* At least 44 px so it is easy to hit on a phone. Sits on the shape so the name stays readable. */
+  .delete-preset {
+    position: absolute;
+    top: 42px;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 1.4rem;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   }
 </style>
