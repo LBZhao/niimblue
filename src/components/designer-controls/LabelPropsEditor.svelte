@@ -160,6 +160,7 @@
       tailPos,
       tailLength: appliedTail,
       mirror,
+      dpmm,
       ...(split === "none"
         ? {}
         : {
@@ -268,6 +269,7 @@
 
   const fillWithCurrentParams = () => {
     prevUnit = "px";
+    if (labelProps.dpmm !== undefined) dpmm = labelProps.dpmm;
     width = labelProps.size.width;
     height = labelProps.size.height;
     printDirection = labelProps.printDirection;

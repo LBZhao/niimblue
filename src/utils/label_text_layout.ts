@@ -8,6 +8,17 @@ export const todayStamp = (): string => dayjs().format("MM/DD/YYYY");
 
 export const firstLine = (text: string): string => text.split("\n")[0] ?? "";
 
+/** Fewer words than this on the main first line are stacked one per line on the copy. */
+export const STACK_WORDS_BELOW = 3;
+
+/** Text for the split copy: the main first line, one word per line when it is short. */
+export const secondaryText = (primaryText: string): { text: string; stacked: boolean } => {
+  const line = firstLine(primaryText);
+  const words = line.trim().split(/\s+/).filter((word) => word.length > 0);
+  if (words.length > 1 && words.length < STACK_WORDS_BELOW) return { text: words.join("\n"), stacked: true };
+  return { text: line, stacked: false };
+};
+
 export const newlineCount = (text: string): number => {
   let count = 0;
   for (let i = 0; i < text.length; i++) {
@@ -121,6 +132,7 @@ const packWords = (
   widths: number[],
   space: number,
   maxWidthAt: (line: number) => number,
+  oneWordPerLine = false,
 ): string[] | null => {
   const lines: string[] = [];
   let index = 0;
@@ -130,6 +142,7 @@ const packWords = (
     let used = 0;
     let count = 0;
     while (index + count < words.length) {
+      if (oneWordPerLine && count === 1) break;
       const wordWidth = widths[index + count];
       const next = count === 0 ? wordWidth : used + space + wordWidth;
       if (count > 0 && next > limit + 0.5) break;
@@ -147,8 +160,15 @@ const packWords = (
 /**
  * Wrap on spaces so every line stays inside the inscribed circle.
  * `limitBottom` is the y the text must stay above (the date).
+ * `oneWordPerLine` stacks the words instead of packing them.
  */
-export const placeCircleText = (box: TextboxExt, text: string, piece: TextArea, limitBottom: number): void => {
+export const placeCircleText = (
+  box: TextboxExt,
+  text: string,
+  piece: TextArea,
+  limitBottom: number,
+  oneWordPerLine = false,
+): void => {
   const radius = Math.min(piece.width, piece.height) / 2;
   const cx = piece.x + piece.width / 2;
   const cy = piece.y + piece.height / 2;
@@ -174,7 +194,7 @@ export const placeCircleText = (box: TextboxExt, text: string, piece: TextArea, 
     let guess = words.map(() => textRadius * 2);
     let lines: string[] | null = null;
     for (let attempt = 0; attempt < 8; attempt++) {
-      const packed = packWords(words, widths, space, (line) => guess[line] ?? 0);
+      const packed = packWords(words, widths, space, (line) => guess[line] ?? 0, oneWordPerLine);
       if (!packed) return false;
       const blockH = packed.length * lineH;
       if (blockH > span + 0.5) return false;

@@ -7,6 +7,7 @@ import {
   newlineCount,
   placeCircleText,
   placeFittedText,
+  secondaryText,
   sizeDateText,
   todayStamp,
   type TextArea,
@@ -59,6 +60,10 @@ export class CustomCanvas extends fabric.Canvas {
   private readonly TAIL_WIDTH = 40;
   private readonly GRAY = "#CFCFCF";
   private readonly MIRROR_GHOST_COLOR = "rgba(0, 0, 0, 0.3)";
+  /** Gap shown between split pieces in the editor. */
+  private readonly EDITOR_GAP_MM = 1;
+  /** Used for labels saved before dpmm was stored. */
+  private readonly FALLBACK_DPMM = 8;
   private customBackground: boolean = true;
   private highlightMirror: boolean = true;
   private gridEnabled: boolean = false;
@@ -279,12 +284,23 @@ export class CustomCanvas extends fabric.Canvas {
     this.requestRenderAll();
   }
 
-  /** Editor view pulls the two pieces together. Thumbnails keep the real gap. */
+  /** Gap the editor keeps between the two pieces, in pixels. */
+  private editorGap(physicalGap: number): number {
+    const dpmm = this.labelProps.dpmm ?? this.FALLBACK_DPMM;
+    return Math.min(physicalGap, Math.round(this.EDITOR_GAP_MM * dpmm));
+  }
+
+  /**
+   * Editor view pulls the two pieces together, leaving a small gap. Thumbnails keep the real gap.
+   * `gap` is how far the second piece moves, not the gap that is left.
+   */
   private layoutGapShift(): { axis: "vertical" | "horizontal"; gap: number } | null {
     if (this.showPhysicalGap || !this.customBackground) return null;
     const layout = this.getTwoPieceLayout();
     if (!layout || !(layout.gap > 0)) return null;
-    return { axis: layout.axis, gap: layout.gap };
+    const shift = layout.gap - this.editorGap(layout.gap);
+    if (!(shift > 0)) return null;
+    return { axis: layout.axis, gap: shift };
   }
 
   private displayLayout(): TwoPieceLayout | null {
@@ -293,23 +309,24 @@ export class CustomCanvas extends fabric.Canvas {
     const collapse = this.layoutGapShift();
     if (!collapse) return layout;
     const [a, b] = layout.pieces;
+    const shown = layout.gap - collapse.gap;
     if (layout.axis === "vertical") {
-      const nextB = { ...b, x: b.x - layout.gap };
+      const nextB = { ...b, x: b.x - collapse.gap };
       return {
         ...layout,
         pieces: [a, nextB],
-        gap: 0,
-        gapRect: { x: a.x + a.width, y: a.y, width: 0, height: a.height },
-        flipAxis: a.x + a.width,
+        gap: shown,
+        gapRect: { x: a.x + a.width, y: a.y, width: shown, height: a.height },
+        flipAxis: a.x + a.width + shown / 2,
       };
     }
-    const nextB = { ...b, y: b.y - layout.gap };
+    const nextB = { ...b, y: b.y - collapse.gap };
     return {
       ...layout,
       pieces: [a, nextB],
-      gap: 0,
-      gapRect: { x: a.x, y: a.y + a.height, width: a.width, height: 0 },
-      flipAxis: a.y + a.height,
+      gap: shown,
+      gapRect: { x: a.x, y: a.y + a.height, width: a.width, height: shown },
+      flipAxis: a.y + a.height + shown / 2,
     };
   }
 
@@ -373,7 +390,7 @@ export class CustomCanvas extends fabric.Canvas {
       return;
     }
 
-    const onSecondPiece = coord >= fullPieceB - layout.gap - 0.01;
+    const onSecondPiece = coord >= fullPieceB - collapse.gap - 0.01;
     const desired = onSecondPiece ? collapse.gap : 0;
     if (prev !== 0 && prev !== desired) {
       const delta = desired - prev;
@@ -718,14 +735,22 @@ export class CustomCanvas extends fabric.Canvas {
             ),
           )
         : roundRadius;
+      // Split pieces: the line runs down the middle of the editor gap.
+      const separators = layout
+        ? [
+            layout.axis === "vertical"
+              ? layout.gapRect.x + layout.gapRect.width / 2
+              : layout.gapRect.y + layout.gapRect.height / 2,
+          ]
+        : fold.points;
 
       if (fold.axis === "horizontal") {
-        fold.points.forEach((x) => {
+        separators.forEach((x) => {
           ctx.moveTo(bb.startX + separatorInset, x);
           ctx.lineTo(bb.endX - separatorInset, x);
         });
       } else if (fold.axis === "vertical") {
-        fold.points.forEach((y) => {
+        separators.forEach((y) => {
           ctx.moveTo(y, bb.startY + separatorInset);
           ctx.lineTo(y, bb.endY - separatorInset);
         });
@@ -966,7 +991,7 @@ export class CustomCanvas extends fabric.Canvas {
     }
     if (linesChanged) this.layoutManagedText("primary");
     else {
-      this.lockPrimaryWrap(target);
+      this.lockPrimaryWrap(target, prev);
       if (firstChanged) this.layoutManagedText("secondary");
     }
   }
@@ -1122,12 +1147,12 @@ export class CustomCanvas extends fabric.Canvas {
       this.remove(existing);
       return;
     }
-    const source = firstLine(this.findRole("primary")?.text ?? "");
+    const { text: source, stacked } = secondaryText(this.findRole("primary")?.text ?? "");
     const box = existing ?? this.createRole("secondary", source);
     box.labelRole = "secondary";
     const pieceBottom = frames.secondary.y + frames.secondary.height;
     if (frames.secondary.shape === "circle") {
-      placeCircleText(box, source, frames.secondary, pieceBottom);
+      placeCircleText(box, source, frames.secondary, pieceBottom, stacked);
     } else {
       placeFittedText(box, source, this.areaAboveDate(frames.secondary, false, frames.textLimitY));
     }
@@ -1135,12 +1160,17 @@ export class CustomCanvas extends fabric.Canvas {
     this.holdPiece(box, true);
   }
 
-  /** Keep the main box at the piece width so words wrap before Enter. The font stays put. */
-  private lockPrimaryWrap(box: TextboxExt) {
+  /**
+   * Keep the main box at the piece width so words wrap before Enter.
+   * Typing keeps the font unless a wrapped word would run into the date.
+   * Deleting refits, so the font can grow back.
+   */
+  private lockPrimaryWrap(box: TextboxExt, prevText: string) {
     const dateHeight = this.findRole("date")?.height ?? 0;
     const frames = this.managedFrames(dateHeight);
     const area = this.areaAboveDate(frames.primary, frames.primaryStopsForDate, frames.textLimitY);
     const pieceWidth = Math.max(1, area.width);
+    const shorter = (box.text ?? "").length < prevText.length;
     this.layoutQuiet = true;
     try {
       box.dynamicMinWidth = 0;
@@ -1157,6 +1187,13 @@ export class CustomCanvas extends fabric.Canvas {
       box.dynamicMinWidth = 0;
       box.width = pieceWidth;
       box.initDimensions();
+      const overflows = box.height > area.height + 0.5 || box.dynamicMinWidth > pieceWidth + 0.5;
+      if (overflows || shorter) {
+        placeFittedText(box, box.text ?? "", area);
+        box.lastLayoutText = box.text;
+        this.holdPiece(box, false);
+        return;
+      }
       box.setPositionByOrigin(
         new fabric.Point(area.x + area.width / 2, area.y + area.height / 2),
         "center",

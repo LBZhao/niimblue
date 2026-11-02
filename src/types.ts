@@ -46,6 +46,8 @@ export const LabelPropsSchema = z.object({
   tailPos: z.enum(["right", "bottom", "left", "top"]).default("right").optional(),
   tailLength: z.number().default(0).optional(),
   mirror: z.enum(["none", "copy", "flip"]).default("none").optional(),
+  /** Dots per mm the label was sized with. Older labels do not have it. */
+  dpmm: z.number().positive().optional(),
 });
 
 export const LabelPresetSchema = z.object({
