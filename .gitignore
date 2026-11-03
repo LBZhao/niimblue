@@ -3,3 +3,7 @@
 /node_modules
 .idea
 CLAUDE.md
+
+# Vitest browser failure screenshots
+__screenshots__/
+.vitest-attachments/
