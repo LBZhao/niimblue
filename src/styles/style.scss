@@ -53,6 +53,33 @@ body {
   color: var(--bs-success-text-emphasis);
 }
 
+/*
+ * Touch screens: small buttons and fields at least 44px tall, close to Android's 48dp touch target.
+ * Mouse users keep Bootstrap's compact sizes.
+ */
+@media (pointer: coarse) {
+  .btn-sm,
+  .btn-group-sm > .btn,
+  .input-group-sm > .btn,
+  .input-group-sm > .form-control,
+  .input-group-sm > .form-select,
+  .input-group-sm > .input-group-text,
+  .form-control-sm,
+  .form-select-sm {
+    min-height: 44px;
+  }
+
+  .btn-sm,
+  .btn-group-sm > .btn,
+  .input-group-sm > .btn {
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+}
+
 /* A label (canvas) with its feed chip at the edge that prints first. */
 .feed-stage {
   display: flex;

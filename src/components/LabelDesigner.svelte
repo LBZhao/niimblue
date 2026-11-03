@@ -606,15 +606,18 @@
 
         <ObjectPicker onSubmit={onObjectPicked} {labelProps} {zplImageReady} {pdfImageReady} />
 
-        <button class="btn btn-sm btn-primary ms-1" onclick={openPreview}>
-          <MdIcon icon="visibility" />
-          {$tr("editor.preview")}
-        </button>
-        <button
-          title="Print with default or saved parameters"
-          class="btn btn-sm btn-primary ms-1"
-          onclick={openPreviewAndPrint}
-          disabled={$connectionState !== "connected"}><MdIcon icon="print" /> {$tr("editor.print")}</button>
+        <!-- On phones this becomes a bar at the bottom of the screen, in thumb reach. -->
+        <div class="print-actions d-flex gap-1 ms-1">
+          <button class="btn btn-sm btn-secondary" onclick={openPreview}>
+            <MdIcon icon="visibility" />
+            {$tr("editor.preview")}
+          </button>
+          <button
+            title="Print with default or saved parameters"
+            class="btn btn-sm btn-primary"
+            onclick={openPreviewAndPrint}
+            disabled={$connectionState !== "connected"}><MdIcon icon="print" /> {$tr("editor.print")}</button>
+        </div>
       </div>
     </div>
   </div>
@@ -623,7 +626,7 @@
     <div class="col d-flex justify-content-center">
       <div class="toolbar d-flex flex-wrap gap-1 justify-content-center align-items-center">
         {#if selectedCount > 0}
-          <button class="btn btn-sm btn-danger me-1" onclick={deleteSelected} title={$tr("editor.delete")}>
+          <button class="btn btn-sm btn-secondary me-1" onclick={deleteSelected} title={$tr("editor.delete")}>
             <MdIcon icon="delete" />
           </button>
         {/if}
@@ -700,5 +703,33 @@
   .canvas-wrapper canvas {
     image-rendering: pixelated;
     display: block;
+  }
+
+  @media (max-width: 767.98px) {
+    .print-actions {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      /* Below dropdowns (1000) and modals, above the page. */
+      z-index: 990;
+      margin: 0 !important;
+      gap: 8px !important;
+      padding: 8px calc(12px + var(--app-inset-right)) calc(8px + var(--app-inset-bottom))
+        calc(12px + var(--app-inset-left));
+      background: var(--bs-body-bg);
+      border-top: 1px solid var(--bs-border-color);
+    }
+
+    .print-actions .btn {
+      flex: 1;
+      min-height: 48px;
+      font-size: 1rem;
+    }
+
+    /* Keep the end of the page clear of the bar. */
+    :global(.page-wrapper) {
+      padding-bottom: 72px;
+    }
   }
 </style>

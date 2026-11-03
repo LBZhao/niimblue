@@ -28,7 +28,7 @@
 
 <div class="dropdown">
   <button
-    class="btn btn-sm btn-{enabled ? 'warning' : 'secondary'}"
+    class="btn btn-sm btn-{enabled ? 'primary' : 'secondary'}"
     data-bs-toggle="dropdown"
     data-bs-auto-close="outside"
     title={$tr("params.csv.title")}>
@@ -54,7 +54,7 @@
       <div class="placeholders pt-1">
         {$tr("params.csv.placeholders")}
         {#each placeholders as p (p)}
-          <button class="btn btn-sm btn-outline-info px-1 py-0" onclick={() => onPlaceholderPicked(p)}
+          <button class="btn btn-sm btn-outline-secondary px-1 py-0" onclick={() => onPlaceholderPicked(p)}
             >{`{${p}}`}
           </button>
         {/each}

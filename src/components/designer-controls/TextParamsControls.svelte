@@ -117,18 +117,18 @@
 
 <button
   title={$tr("params.text.align.left")}
-  class="btn btn-sm {selectedText.textAlign === 'left' ? 'btn-secondary' : ''}"
+  class="btn btn-sm {selectedText.textAlign === 'left' ? 'btn-primary' : 'btn-secondary'}"
   onclick={() => setXAlign("left")}><MdIcon icon="format_align_left" /></button>
 <button
   title={$tr("params.text.align.center")}
-  class="btn btn-sm {selectedText.textAlign === 'center' ? 'btn-secondary' : ''}"
+  class="btn btn-sm {selectedText.textAlign === 'center' ? 'btn-primary' : 'btn-secondary'}"
   onclick={() => setXAlign("center")}><MdIcon icon="format_align_center" /></button>
 <button
   title={$tr("params.text.align.right")}
-  class="btn btn-sm {selectedText.textAlign === 'right' ? 'btn-secondary' : ''}"
+  class="btn btn-sm {selectedText.textAlign === 'right' ? 'btn-primary' : 'btn-secondary'}"
   onclick={() => setXAlign("right")}><MdIcon icon="format_align_right" /></button>
 <div class="dropdown">
-  <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" title={$tr("params.text.vorigin")}>
+  <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" title={$tr("params.text.vorigin")}>
     {#if selectedText.originY === "top"}
       <MdIcon icon="vertical_align_top" />
     {:else if selectedText.originY === "center"}
@@ -139,19 +139,19 @@
   </button>
   <div class="dropdown-menu p-2">
     <button
-      class="btn btn-sm {selectedText.originY === 'top' ? 'btn-secondary' : ''}"
+      class="btn btn-sm {selectedText.originY === 'top' ? 'btn-primary' : 'btn-secondary'}"
       onclick={() => setYAlign("top")}
       title={$tr("params.text.vorigin.top")}>
       <MdIcon icon="vertical_align_top" />
     </button>
     <button
-      class="btn btn-sm {selectedText.originY === 'center' ? 'btn-secondary' : ''}"
+      class="btn btn-sm {selectedText.originY === 'center' ? 'btn-primary' : 'btn-secondary'}"
       onclick={() => setYAlign("center")}
       title={$tr("params.text.vorigin.center")}>
       <MdIcon icon="vertical_align_center" />
     </button>
     <button
-      class="btn btn-sm {selectedText.originY === 'bottom' ? 'btn-secondary' : ''}"
+      class="btn btn-sm {selectedText.originY === 'bottom' ? 'btn-primary' : 'btn-secondary'}"
       onclick={() => setYAlign("bottom")}
       title={$tr("params.text.vorigin.bottom")}>
       <MdIcon icon="vertical_align_bottom" />
@@ -160,21 +160,21 @@
 </div>
 
 <button
-  class="btn btn-sm {selectedText.fontWeight === 'bold' ? 'btn-secondary' : ''}"
+  class="btn btn-sm {selectedText.fontWeight === 'bold' ? 'btn-primary' : 'btn-secondary'}"
   title={$tr("params.text.bold")}
   onclick={toggleBold}>
   <MdIcon icon="format_bold" />
 </button>
 
 <button
-  class="btn btn-sm {selectedText.fontStyle === 'italic' ? 'btn-secondary' : ''}"
+  class="btn btn-sm {selectedText.fontStyle === 'italic' ? 'btn-primary' : 'btn-secondary'}"
   title={$tr("params.text.italic")}
   onclick={toggleItalic}>
   <MdIcon icon="format_italic" />
 </button>
 
 <div class="dropdown">
-  <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" title={$tr("params.color")}>
+  <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" title={$tr("params.color")}>
     <MdIcon icon="format_color_fill" />
   </button>
 
@@ -208,7 +208,7 @@
 
 {#if selectedText instanceof fabric.Textbox}
   <div class="dropdown">
-    <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" title={$tr("params.params.text.split")}>
+    <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" title={$tr("params.params.text.split")}>
       <MdIcon icon="wrap_text" />
     </button>
 
@@ -226,7 +226,7 @@
 {#if selectedText instanceof TextboxExt}
   <!-- fixme: Custom property not auto-rendered for some reason -->
   <button
-    class="btn btn-sm {selectedText.fontAutoSize ? 'btn-secondary' : ''}"
+    class="btn btn-sm {selectedText.fontAutoSize ? 'btn-primary' : 'btn-secondary'}"
     title={$tr("params.text.autosize")}
     data-ver={editRevision}
     onclick={toggleFontAutoSize}>

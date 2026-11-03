@@ -44,7 +44,7 @@
 </div>
 
 <button
-  class="btn btn-sm {selectedBarcode.printText ? 'btn-secondary' : ''}"
+  class="btn btn-sm {selectedBarcode.printText ? 'btn-primary' : 'btn-secondary'}"
   title={$tr("params.barcode.enable_caption")}
   onclick={() => {
     selectedBarcode?.set("printText", !selectedBarcode.printText);

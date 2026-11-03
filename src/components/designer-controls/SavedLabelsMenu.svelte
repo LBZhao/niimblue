@@ -291,11 +291,11 @@
 
       <div class="d-flex gap-1 flex-wrap justify-content-end">
         <div class="btn-group btn-group-sm make-default">
-          <button class="btn text-secondary" onclick={onMakeDefaultClicked}>
+          <button class="btn btn-outline-secondary" onclick={onMakeDefaultClicked}>
             {$tr("params.saved_labels.make_default")}
           </button>
           {#if customDefaultTemplate}
-            <button class="btn text-secondary" onclick={onRemoveDefaultClicked}>
+            <button class="btn btn-outline-secondary" onclick={onRemoveDefaultClicked}>
               <MdIcon icon="close" />
             </button>
           {/if}

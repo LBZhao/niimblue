@@ -323,7 +323,7 @@
     {#if featureSupport.webBluetooth}
       <button
         disabled={$connectionState === "connecting"}
-        class="btn text-nowrap {connectionType === 'bluetooth' ? 'btn-light' : 'btn-outline-secondary'}"
+        class="btn text-nowrap {connectionType === 'bluetooth' ? 'btn-secondary' : 'btn-outline-secondary'}"
         onclick={() => switchConnectionType("bluetooth")}>
         <MdIcon icon="bluetooth" />
         {$tr("connector.bluetooth")}
@@ -332,7 +332,7 @@
     {#if featureSupport.webSerial}
       <button
         disabled={$connectionState === "connecting"}
-        class="btn text-nowrap {connectionType === 'serial' ? 'btn-light' : 'btn-outline-secondary'}"
+        class="btn text-nowrap {connectionType === 'serial' ? 'btn-secondary' : 'btn-outline-secondary'}"
         onclick={() => switchConnectionType((connectionType = "serial"))}>
         <MdIcon icon="usb" />
         {$tr("connector.serial")}
@@ -341,7 +341,7 @@
     {#if featureSupport.capacitorBle}
       <button
         disabled={$connectionState === "connecting"}
-        class="btn text-nowrap {connectionType === 'capacitor-ble' ? 'btn-light' : 'btn-outline-secondary'}"
+        class="btn text-nowrap {connectionType === 'capacitor-ble' ? 'btn-secondary' : 'btn-outline-secondary'}"
         onclick={() => switchConnectionType((connectionType = "capacitor-ble"))}>
         <MdIcon icon="usb" />
         Capacitor BLE

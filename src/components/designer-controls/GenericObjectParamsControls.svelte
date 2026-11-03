@@ -87,10 +87,10 @@
     <MdIcon icon="segment" />
   </button>
   <div class="dropdown-menu arrangement p-2">
-    <button class="btn btn-sm" onclick={() => bringTo("top")}>
+    <button class="btn btn-sm btn-secondary" onclick={() => bringTo("top")}>
       {$tr("params.generic.arrange.top")}
     </button>
-    <button class="btn btn-sm" onclick={() => bringTo("bottom")}>
+    <button class="btn btn-sm btn-secondary" onclick={() => bringTo("bottom")}>
       {$tr("params.generic.arrange.bottom")}
     </button>
   </div>

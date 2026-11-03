@@ -424,7 +424,7 @@
         {:else if labelProps.printDirection === "left"}
           ({$tr("params.label.direction")} {$tr("params.label.direction.left")})
         {/if}
-        <button class="btn btn-sm" onclick={fillWithCurrentParams}><MdIcon icon="arrow_downward" /></button>
+        <button class="btn btn-sm btn-outline-secondary" onclick={fillWithCurrentParams}><MdIcon icon="arrow_downward" /></button>
       </div>
 
       <LabelPresetsBrowser
