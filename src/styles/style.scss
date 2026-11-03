@@ -80,6 +80,27 @@ body {
   }
 }
 
+/*
+ * Toolbar buttons that do related things sit together in a group with a subtle panel.
+ * The toolbar wraps between groups, so a group stays on one line when it fits.
+ */
+.toolbar {
+  column-gap: 8px !important;
+  row-gap: 6px !important;
+}
+
+.tool-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px;
+  max-width: 100%;
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--bs-tertiary-bg);
+}
+
 /* A label (canvas) with its feed chip at the edge that prints first. */
 .feed-stage {
   display: flex;

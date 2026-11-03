@@ -69,11 +69,12 @@
 
 <input type="hidden" value={editRevision}>
 
-<button class="btn btn-sm btn-secondary" onclick={putToCenterV} title={$tr("params.generic.center.vertical")}>
-  <MdIcon icon="vertical_distribute" />
-</button>
+<div class="tool-group" role="group" aria-label="Arrange">
 <button class="btn btn-sm btn-secondary" onclick={putToCenterH} title={$tr("params.generic.center.horizontal")}>
   <MdIcon icon="horizontal_distribute" />
+</button>
+<button class="btn btn-sm btn-secondary" onclick={putToCenterV} title={$tr("params.generic.center.vertical")}>
+  <MdIcon icon="vertical_distribute" />
 </button>
 
 <ObjectPositionControls {selectedObject} />
@@ -115,6 +116,7 @@
     </div>
   </div>
 {/if}
+</div>
 
 <style>
   .dropdown-menu.arrangement {

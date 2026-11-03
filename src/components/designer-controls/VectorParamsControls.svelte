@@ -38,6 +38,8 @@
 
 <input type="hidden" value={editRevision}>
 
+{#if selectedObject instanceof fabric.Rect || selectedObject instanceof fabric.Circle || selectedObject instanceof fabric.Line || selectedObject instanceof fabric.Polyline}
+<div class="tool-group" role="group" aria-label="Shape style">
 {#if selectedObject instanceof fabric.Rect}
   <div class="input-group flex-nowrap input-group-sm">
     <span class="input-group-text" title={$tr("params.vector.round_radius")}>
@@ -99,6 +101,8 @@
       <option value="transparent">{$tr("params.color.transparent")}</option>
     </select>
   </div>
+{/if}
+</div>
 {/if}
 
 <style>

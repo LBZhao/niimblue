@@ -561,50 +561,52 @@
   <div class="row mb-1">
     <div class="col d-flex justify-content-center">
       <div class="toolbar d-flex flex-wrap gap-1 justify-content-center align-items-center">
-        <LabelPropsEditor {labelProps} onChange={onUpdateLabelProps} />
+        <div class="tool-group" role="group" aria-label="Label">
+          <LabelPropsEditor {labelProps} onChange={onUpdateLabelProps} />
+          <SavedLabelsMenu
+            canvas={fabricCanvas!}
+            onRequestLabelTemplate={exportCurrentLabel}
+            {onLoadRequested}
+            {csvEnabled} />
+          <button class="btn btn-sm btn-secondary" onclick={clearCanvas} title={$tr("editor.clear")}>
+            <MdIcon icon="cancel_presentation" />
+          </button>
+        </div>
 
-        <button class="btn btn-sm btn-secondary" onclick={clearCanvas} title={$tr("editor.clear")}>
-          <MdIcon icon="cancel_presentation" />
-        </button>
+        <div class="tool-group" role="group" aria-label="History">
+          <button
+            class="btn btn-sm btn-secondary"
+            disabled={undoState.undoDisabled}
+            onclick={() => undo.undo()}
+            title={$tr("editor.undo")}>
+            <MdIcon icon="undo" />
+          </button>
+          <button
+            class="btn btn-sm btn-secondary"
+            disabled={undoState.redoDisabled}
+            onclick={() => undo.redo()}
+            title={$tr("editor.redo")}>
+            <MdIcon icon="redo" />
+          </button>
+        </div>
 
-        <SavedLabelsMenu
-          canvas={fabricCanvas!}
-          onRequestLabelTemplate={exportCurrentLabel}
-          {onLoadRequested}
-          {csvEnabled} />
+        <div class="tool-group" role="group" aria-label="Insert">
+          <ObjectPicker onSubmit={onObjectPicked} {labelProps} {zplImageReady} {pdfImageReady} />
+          <IconPicker onSubmit={onIconPicked} onSubmitSvg={onSvgIconPicked} />
+          <CsvControl bind:enabled={csvEnabled} onPlaceholderPicked={onCsvPlaceholderPicked} />
+        </div>
 
-        <button
-          class="btn btn-sm btn-secondary"
-          disabled={undoState.undoDisabled}
-          onclick={() => undo.undo()}
-          title={$tr("editor.undo")}>
-          <MdIcon icon="undo" />
-        </button>
-
-        <button
-          class="btn btn-sm btn-secondary"
-          disabled={undoState.redoDisabled}
-          onclick={() => undo.redo()}
-          title={$tr("editor.redo")}>
-          <MdIcon icon="redo" />
-        </button>
-
-        <button
-          class="btn btn-sm {$appConfig.gridEnabled ? 'btn-primary' : 'btn-secondary'}"
-          onclick={toggleGrid}
-          title={$tr("editor.grid")}>
-          <MdIcon icon="grid_on" />
-        </button>
-
-        <button class="btn btn-sm btn-secondary" onclick={fitZoomToScreen} title="Fit to screen">
-          {zoomText}
-        </button>
-
-        <CsvControl bind:enabled={csvEnabled} onPlaceholderPicked={onCsvPlaceholderPicked} />
-
-        <IconPicker onSubmit={onIconPicked} onSubmitSvg={onSvgIconPicked} />
-
-        <ObjectPicker onSubmit={onObjectPicked} {labelProps} {zplImageReady} {pdfImageReady} />
+        <div class="tool-group" role="group" aria-label="View">
+          <button
+            class="btn btn-sm {$appConfig.gridEnabled ? 'btn-primary' : 'btn-secondary'}"
+            onclick={toggleGrid}
+            title={$tr("editor.grid")}>
+            <MdIcon icon="grid_on" />
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick={fitZoomToScreen} title="Fit to screen">
+            {zoomText}
+          </button>
+        </div>
 
         <!-- On phones this becomes a bar at the bottom of the screen, in thumb reach. -->
         <div class="print-actions d-flex gap-1 ms-1">
@@ -626,15 +628,14 @@
     <div class="col d-flex justify-content-center">
       <div class="toolbar d-flex flex-wrap gap-1 justify-content-center align-items-center">
         {#if selectedCount > 0}
-          <button class="btn btn-sm btn-secondary me-1" onclick={deleteSelected} title={$tr("editor.delete")}>
-            <MdIcon icon="delete" />
-          </button>
-        {/if}
-
-        {#if selectedCount > 0}
-          <button class="btn btn-sm btn-secondary me-1" onclick={cloneSelected} title={$tr("editor.clone")}>
-            <MdIcon icon="content_copy" />
-          </button>
+          <div class="tool-group" role="group" aria-label="Object">
+            <button class="btn btn-sm btn-secondary" onclick={cloneSelected} title={$tr("editor.clone")}>
+              <MdIcon icon="content_copy" />
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick={deleteSelected} title={$tr("editor.delete")}>
+              <MdIcon icon="delete" />
+            </button>
+          </div>
         {/if}
 
         {#if selectedObject && selectedCount === 1}
@@ -646,23 +647,34 @@
         {/if}
 
         {#if selectedObject instanceof fabric.IText}
-          <TextParamsControls selectedText={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+          <TextParamsControls selectedText={selectedObject} {editRevision} valueUpdated={controlValueUpdated}>
+            {#snippet content()}
+              <!-- Always set here: this only renders while a text object is selected. -->
+              <VariableInsertControl selectedObject={selectedObject!} valueUpdated={controlValueUpdated} />
+            {/snippet}
+          </TextParamsControls>
         {/if}
 
         {#if selectedObject instanceof QRCode}
-          <QrCodeParamsPanel selectedQRCode={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+          <div class="tool-group" role="group" aria-label="QR code">
+            <QrCodeParamsPanel selectedQRCode={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+            <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
+          </div>
         {/if}
 
         {#if selectedObject instanceof ArUcoMarker}
-          <ArUcoParamsPanel selectedArUco={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+          <div class="tool-group" role="group" aria-label="ArUco marker">
+            <ArUcoParamsPanel selectedArUco={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+          </div>
         {/if}
 
         {#if selectedObject instanceof Barcode}
-          <BarcodeParamsPanel selectedBarcode={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
-        {/if}
-
-        {#if selectedObject instanceof fabric.IText || selectedObject instanceof QRCode || (selectedObject instanceof Barcode && selectedObject.encoding === "CODE128B")}
-          <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
+          <div class="tool-group" role="group" aria-label="Barcode">
+            <BarcodeParamsPanel selectedBarcode={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+            {#if selectedObject.encoding === "CODE128B"}
+              <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
+            {/if}
+          </div>
         {/if}
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as fabric from "fabric";
+  import type { Snippet } from "svelte";
   import { tr } from "$/utils/i18n";
   import MdIcon from "$/components/basic/MdIcon.svelte";
   import FontFamilyPicker from "$/components/designer-controls/FontFamilyPicker.svelte";
@@ -9,9 +10,11 @@
     selectedText: fabric.IText;
     editRevision: number;
     valueUpdated: () => void;
+    /** Extra controls for the Content group, next to "Edit text" (the variables menu). */
+    content?: Snippet;
   }
 
-  let { selectedText, editRevision, valueUpdated }: Props = $props();
+  let { selectedText, editRevision, valueUpdated, content }: Props = $props();
 
   let sizeMin: number = 1;
   let sizeMax: number = 999;
@@ -115,6 +118,7 @@
 <!-- Fix component not updating when selectedText changes. I didn't find a better way to do this. -->
 <input type="hidden" value={editRevision}>
 
+<div class="tool-group" role="group" aria-label="Alignment">
 <button
   title={$tr("params.text.align.left")}
   class="btn btn-sm {selectedText.textAlign === 'left' ? 'btn-primary' : 'btn-secondary'}"
@@ -159,6 +163,8 @@
   </div>
 </div>
 
+</div>
+<div class="tool-group" role="group" aria-label="Style">
 <button
   class="btn btn-sm {selectedText.fontWeight === 'bold' ? 'btn-primary' : 'btn-secondary'}"
   title={$tr("params.text.bold")}
@@ -235,6 +241,8 @@
 {/if}
 
 
+</div>
+<div class="tool-group" role="group" aria-label="Size">
 <div class="input-group flex-nowrap input-group-sm font-size">
   <span class="input-group-text" title={$tr("params.text.font_size")}><MdIcon icon="format_size" /></span>
   <input
@@ -267,11 +275,16 @@
     oninput={(e) => lineHeightChange(e.currentTarget.valueAsNumber)} />
 </div>
 
+</div>
+<div class="tool-group" role="group" aria-label="Font">
 <FontFamilyPicker {editRevision} value={selectedText.fontFamily} valueUpdated={updateFontFamily} />
-
+</div>
+<div class="tool-group" role="group" aria-label="Content">
 <button class="btn btn-sm btn-secondary" onclick={editInPopup} title={$tr("params.text.edit")}>
   <MdIcon icon="edit" />
 </button>
+{@render content?.()}
+</div>
 
 <style>
   .input-group {
