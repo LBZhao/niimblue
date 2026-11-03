@@ -1,10 +1,18 @@
 import dayjs from "dayjs";
 import * as fabric from "fabric";
 import { TextboxExt } from "$/fabric-object/textbox-ext";
+import type { LabelDate } from "$/types";
 
 export type TextArea = { x: number; y: number; width: number; height: number };
 
-export const todayStamp = (): string => dayjs().format("MM/DD/YYYY");
+/** Date formats offered in label properties. The first is the default. */
+export const DATE_FORMATS = ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD", "DD.MM.YYYY", "MMM D, YYYY"];
+
+/** The label's date text: today, or `daysAhead` days later, in the chosen format. */
+export const dateStamp = (date?: LabelDate): string =>
+  dayjs()
+    .add(date?.daysAhead ?? 0, "day")
+    .format(date?.format || DATE_FORMATS[0]);
 
 export const firstLine = (text: string): string => text.split("\n")[0] ?? "";
 
@@ -240,8 +248,13 @@ export const placeCircleText = (
 };
 
 /** Font starts at about 1/5 of the label height, then shrinks until the stamp fits. */
-export const sizeDateText = (box: TextboxExt, labelHeight: number, maxWidth: number, maxHeight: number): number => {
-  const stamp = todayStamp();
+export const sizeDateText = (
+  box: TextboxExt,
+  stamp: string,
+  labelHeight: number,
+  maxWidth: number,
+  maxHeight: number,
+): number => {
   const widthLimit = Math.max(1, maxWidth);
   const heightLimit = Math.max(1, maxHeight);
   let fontSize = Math.max(2, Math.round(labelHeight / 5));
@@ -270,15 +283,15 @@ export const sizeDateText = (box: TextboxExt, labelHeight: number, maxWidth: num
     apply(fontSize);
   }
 
-  box.set({ width: Math.max(1, box.calcTextWidth()) });
+  // A little slack, or a date with spaces ("Nov 2, 2026") wraps on rounding.
+  box.set({ width: Math.ceil(box.calcTextWidth()) + 2 });
   box.initDimensions();
   box.dirty = true;
   return box.height;
 };
 
-/** Print copy: keep the fitted size, but show today's date. */
-export const refreshDateStamp = (box: TextboxExt, maxWidth: number): void => {
-  const stamp = todayStamp();
+/** Print copy: keep the fitted size, but show the current date text. */
+export const refreshDateStamp = (box: TextboxExt, stamp: string, maxWidth: number): void => {
   const widthLimit = Math.max(1, maxWidth);
   let fontSize = box.fontSize || 2;
   const apply = (size: number) => {
@@ -290,7 +303,8 @@ export const refreshDateStamp = (box: TextboxExt, maxWidth: number): void => {
     fontSize -= 1;
     apply(fontSize);
   }
-  box.set({ width: Math.max(1, box.calcTextWidth()) });
+  // A little slack, or a date with spaces ("Nov 2, 2026") wraps on rounding.
+  box.set({ width: Math.ceil(box.calcTextWidth()) + 2 });
   box.initDimensions();
   box.dirty = true;
 };

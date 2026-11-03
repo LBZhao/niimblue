@@ -26,6 +26,16 @@ export const FabricObjectSchema = z.custom<fabric.FabricObject>((val: any): bool
   return typeof val === "object";
 });
 
+/** The date printed under the main text. */
+export const LabelDateSchema = z.object({
+  /** Defaults to true. */
+  show: z.boolean().optional(),
+  /** Day.js format, e.g. "MM/DD/YYYY". */
+  format: z.string().optional(),
+  /** Print a later date, e.g. 7 for an expiry date a week out. */
+  daysAhead: z.number().int().optional(),
+});
+
 export const LabelPropsSchema = z.object({
   printDirection: z.enum(["left", "top"]),
   size: z.object({
@@ -48,6 +58,7 @@ export const LabelPropsSchema = z.object({
   mirror: z.enum(["none", "copy", "flip"]).default("none").optional(),
   /** Dots per mm the label was sized with. Older labels do not have it. */
   dpmm: z.number().positive().optional(),
+  date: LabelDateSchema.optional(),
 });
 
 export const LabelPresetSchema = z.object({
@@ -164,6 +175,7 @@ export type PostProcessType = z.infer<typeof PostProcessTypeSchema>;
 export type CsvParams = z.infer<typeof CsvParamsSchema>;
 export type UserIcon = z.infer<typeof UserIconSchema>;
 export type LabelProps = z.infer<typeof LabelPropsSchema>;
+export type LabelDate = z.infer<typeof LabelDateSchema>;
 export type LabelPreset = z.infer<typeof LabelPresetSchema>;
 export type FabricJson = z.infer<typeof FabricJsonSchema>;
 export type ExportedLabelTemplate = z.infer<typeof ExportedLabelTemplateSchema>;

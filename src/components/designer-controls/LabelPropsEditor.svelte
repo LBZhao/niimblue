@@ -21,6 +21,7 @@
   import { FileUtils } from "$/utils/file_utils";
   import { z } from "zod";
   import DpiSelector from "$/components/designer-controls/DpiSelector.svelte";
+  import { DATE_FORMATS, dateStamp } from "$/utils/label_text_layout";
 
   interface Props {
     labelProps: LabelProps;
@@ -54,6 +55,9 @@
   let tailLength = $state<number>(0);
   let tailPos = $state<TailPosition>("right");
   let mirror = $state<MirrorType>("none");
+  let dateShow = $state<boolean>(true);
+  let dateFormat = $state<string>(DATE_FORMATS[0]);
+  let dateDaysAhead = $state<number>(0);
 
   let error = $derived.by<string>(() => {
     let error = "";
@@ -161,6 +165,7 @@
       tailLength: appliedTail,
       mirror,
       dpmm,
+      date: { show: dateShow, format: dateFormat, daysAhead: Math.round(Number(dateDaysAhead) || 0) },
       ...(split === "none"
         ? {}
         : {
@@ -281,6 +286,9 @@
     tailPos = labelProps.tailPos ?? "right";
     tailLength = labelProps.tailLength ?? 0;
     mirror = labelProps.mirror ?? "none";
+    dateShow = labelProps.date?.show !== false;
+    dateFormat = labelProps.date?.format ?? DATE_FORMATS[0];
+    dateDaysAhead = labelProps.date?.daysAhead ?? 0;
     if (labelProps.splitSizeA !== undefined && labelProps.splitSizeB !== undefined) {
       splitSizeA = labelProps.splitSizeA;
       splitSizeB = labelProps.splitSizeB;
@@ -556,6 +564,28 @@
           <span class="input-group-text">
             {#if unit === "mm"}{$tr("params.label.mm")}{/if}
             {#if unit === "px"}{$tr("params.label.px")}{/if}
+          </span>
+        </div>
+      {/if}
+
+      <div class="input-group flex-nowrap input-group-sm mb-2">
+        <span class="input-group-text">{$tr("params.label.date")}</span>
+        <div class="input-group-text">
+          <input class="form-check-input mt-0" type="checkbox" role="switch" bind:checked={dateShow} />
+        </div>
+        <select class="form-select" bind:value={dateFormat} disabled={!dateShow}>
+          {#each DATE_FORMATS as f (f)}
+            <option value={f}>{dateStamp({ format: f })}</option>
+          {/each}
+        </select>
+      </div>
+
+      {#if dateShow}
+        <div class="input-group flex-nowrap input-group-sm mb-2">
+          <span class="input-group-text">{$tr("params.label.date.days_ahead")}</span>
+          <input class="form-control" type="number" min="0" step="1" bind:value={dateDaysAhead} />
+          <span class="input-group-text">
+            {dateStamp({ format: dateFormat, daysAhead: Math.round(Number(dateDaysAhead) || 0) })}
           </span>
         </div>
       {/if}

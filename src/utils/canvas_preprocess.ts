@@ -3,7 +3,7 @@ import dayjs, { ManipulateType } from "dayjs";
 import Barcode from "$/fabric-object/barcode";
 import QRCode from "$/fabric-object/qrcode";
 import { TextboxExt } from "$/fabric-object/textbox-ext";
-import { refreshDateStamp } from "$/utils/label_text_layout";
+import { dateStamp, refreshDateStamp } from "$/utils/label_text_layout";
 
 const VARIABLE_TEMPLATE_RX = /{\s*(\$?\w+)(?:([+-])(\d+)([yMwdhms]))?\s*(?:\|\s*(.*?)\s*)?}/g;
 
@@ -55,7 +55,9 @@ const preprocessString = (input: string, variables?: Variables): string => {
 export const canvasPreprocess = (canvas: fabric.Canvas, variables?: Variables): void => {
   canvas.forEachObject((obj: fabric.FabricObject) => {
     if (obj instanceof TextboxExt && obj.labelRole === "date") {
-      refreshDateStamp(obj, obj.canvas?.getWidth() ?? obj.width);
+      // A CustomCanvas knows the label's date settings; plain canvases use today.
+      const stamp = (canvas as { dateStamp?: () => string }).dateStamp?.() ?? dateStamp();
+      refreshDateStamp(obj, stamp, obj.canvas?.getWidth() ?? obj.width);
       return;
     }
 

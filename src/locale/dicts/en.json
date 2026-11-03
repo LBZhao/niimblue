@@ -106,6 +106,8 @@
     "params.label.head_density.help": "Calculation: DPI / 25.4",
     "params.label.head_density": "Pixel density",
     "params.label.import": "Import",
+    "params.label.date": "Date",
+    "params.label.date.days_ahead": "Days ahead",
     "params.label.label_title": "Custom title",
     "params.label.menu_title": "Label properties",
     "params.label.mm": "mm",

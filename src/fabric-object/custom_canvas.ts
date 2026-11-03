@@ -8,8 +8,8 @@ import {
   placeCircleText,
   placeFittedText,
   secondaryText,
+  dateStamp,
   sizeDateText,
-  todayStamp,
   type TextArea,
 } from "$/utils/label_text_layout";
 
@@ -991,16 +991,18 @@ export class CustomCanvas extends fabric.Canvas {
   private applyManagedLayout(mode: "all" | "primary" | "secondary", physical = false) {
     this.layoutQuiet = true;
     try {
-      const date = mode === "all" ? this.ensureDate() : this.findRole("date");
+      const showDate = this.labelProps.date?.show !== false;
+      if (mode === "all" && !showDate) this.removeDate();
+      const date = !showDate ? undefined : mode === "all" ? this.ensureDate() : this.findRole("date");
       let dateHeight = date?.height ?? 0;
       if (mode === "all" && date) {
         const limit = this.managedFrames(0, physical).date;
-        sizeDateText(date, limit.labelHeight, limit.maxWidth, limit.maxHeight);
+        sizeDateText(date, this.dateStamp(), limit.labelHeight, limit.maxWidth, limit.maxHeight);
         dateHeight = date.height;
       }
       let frames = this.managedFrames(dateHeight, physical);
       if (mode === "all" && date && (date.height > frames.date.maxHeight || date.calcTextWidth() > frames.date.maxWidth)) {
-        sizeDateText(date, frames.date.labelHeight, frames.date.maxWidth, frames.date.maxHeight);
+        sizeDateText(date, this.dateStamp(), frames.date.labelHeight, frames.date.maxWidth, frames.date.maxHeight);
         frames = this.managedFrames(date.height, physical);
       }
       if (mode === "all" && date) this.placeDate(date, frames);
@@ -1076,10 +1078,23 @@ export class CustomCanvas extends fabric.Canvas {
     return box;
   }
 
+  /** Date text for this label, from its date settings. */
+  dateStamp(): string {
+    return dateStamp(this.labelProps.date);
+  }
+
   private ensureDate(): TextboxExt {
     const existing = this.findRole("date");
     if (existing) return existing;
-    return this.createRole("date", todayStamp());
+    return this.createRole("date", this.dateStamp());
+  }
+
+  /** The label has its date turned off. */
+  private removeDate() {
+    const date = this.findRole("date");
+    if (!date) return;
+    if (this.getActiveObject() === date) this.discardActiveObject();
+    this.remove(date);
   }
 
   private managedFrames(dateHeight: number, physical = false): {
