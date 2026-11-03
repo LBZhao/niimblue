@@ -1,8 +1,8 @@
 import { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "ru.mmote.niimblues",
-  appName: "NiimBlues",
+  appId: "io.github.lbzhao.niimblue",
+  appName: "NiimBlue LZ",
   webDir: "www",
   plugins: {
     SplashScreen: {
