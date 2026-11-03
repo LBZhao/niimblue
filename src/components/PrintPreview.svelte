@@ -28,11 +28,6 @@
   import { CustomCanvas } from "$/fabric-object/custom_canvas";
   import { FileUtils } from "$/utils/file_utils";
   import { printDirectionForPrinter } from "$/utils/print_direction";
-
-  /** Blank rows left at the bottom so the printer does not crop the label. */
-  const PRINT_LIFT_PX = 2;
-  /** One content row restored at the top. The bottom clearance stays 2px. */
-  const PRINT_TOP_PAD_PX = 1;
   import AppModal from "$/components/basic/AppModal.svelte";
 
   interface Props {
@@ -233,20 +228,16 @@
 
     if (offset.offsetType === "inner") {
       previewCanvas.width = originalImage.width;
-      previewCanvas.height = originalImage.height + PRINT_TOP_PAD_PX;
+      previewCanvas.height = originalImage.height;
       previewContext.fillStyle = "white";
       previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-      previewContext.putImageData(iData, offset.x, offset.y - PRINT_LIFT_PX + PRINT_TOP_PAD_PX);
+      previewContext.putImageData(iData, offset.x, offset.y);
     } else {
       previewCanvas.width = originalImage.width + Math.abs(offset.x);
-      previewCanvas.height = originalImage.height + Math.abs(offset.y) + PRINT_TOP_PAD_PX;
+      previewCanvas.height = originalImage.height + Math.abs(offset.y);
       previewContext.fillStyle = "white";
       previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-      previewContext.putImageData(
-        iData,
-        Math.max(offset.x, 0),
-        Math.max(offset.y, 0) - PRINT_LIFT_PX + PRINT_TOP_PAD_PX,
-      );
+      previewContext.putImageData(iData, Math.max(offset.x, 0), Math.max(offset.y, 0));
     }
 
     if ($printerMeta !== undefined) {
