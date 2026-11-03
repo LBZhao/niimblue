@@ -4,29 +4,19 @@ import {
   FALLBACK_DPMM,
   GRID_SIZE,
   LABEL_CORNER_RADIUS_MM,
-  OBJECT_DEFAULTS_TEXT,
 } from "$/defaults";
 import { TextboxExt } from "$/fabric-object/textbox-ext";
-import type { LabelProps, LabelShape } from "$/types";
+import { ManagedText } from "$/fabric-object/managed_text";
 import {
-  firstLine,
-  newlineCount,
-  placeCircleText,
-  placeFittedText,
-  secondaryText,
-  dateStamp,
-  sizeDateText,
-  type TextArea,
-} from "$/utils/label_text_layout";
+  collapseLayout,
+  labelBounds,
+  tracePiece,
+  twoPieceLayout,
+  type LabelBounds,
+  type TwoPieceLayout,
+} from "$/fabric-object/split_layout";
+import type { LabelProps } from "$/types";
 
-type LabelBounds = {
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  width: number;
-  height: number;
-};
 type FoldSegment = { start: number; end: number };
 type FoldInfo = {
   axis: "vertical" | "horizontal" | "none";
@@ -35,26 +25,11 @@ type FoldInfo = {
   /** Reflection line for mirror flip. Copy anchors stay in `points`. */
   flipAxis?: number;
 };
-type SplitPiece = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  shape: LabelShape;
-};
-type TwoPieceLayout = {
-  axis: "vertical" | "horizontal";
-  pieces: [SplitPiece, SplitPiece];
-  gap: number;
-  gapRect: { x: number; y: number; width: number; height: number };
-  flipAxis: number;
-};
 type MirrorInfo = { pos: fabric.Point; flip: boolean };
 type GapObject = fabric.FabricObject & { gapOffsetX?: number; gapOffsetY?: number };
 
 const extraGapProps = ["gapOffsetX", "gapOffsetY"];
 
-const fontKey = (box: TextboxExt): string => `${box.fontFamily}|${box.fontWeight}|${box.fontStyle}`;
 for (const prop of extraGapProps) {
   if (!fabric.FabricObject.customProperties.includes(prop)) {
     fabric.FabricObject.customProperties.push(prop);
@@ -69,8 +44,6 @@ export class CustomCanvas extends fabric.Canvas {
   /** Backing paper around the pieces in thumbnails. Darker than GRAY so white pieces read clearly. */
   private readonly LINER = "#9E9E9E";
   private readonly MIRROR_GHOST_COLOR = "rgba(0, 0, 0, 0.3)";
-  /** Blank rows kept above the fitted text and below the date, so printing never clips them. */
-  private readonly EDGE_MARGIN = 3;
   /** Gap shown between split pieces in the editor. */
   private readonly EDITOR_GAP_MM = 1;
   private customBackground: boolean = true;
@@ -86,6 +59,7 @@ export class CustomCanvas extends fabric.Canvas {
   layoutQuiet = false;
   /** Text used when the label has no primary box yet. */
   defaultLabelText = "Text";
+  private readonly managed = new ManagedText(this);
   onZoomChange?: (zoom: number) => void;
 
   constructor(
@@ -98,7 +72,7 @@ export class CustomCanvas extends fabric.Canvas {
     this.on("object:added", (e) => e.target && this.syncObjectGap(e.target));
     this.on("text:changed", (opt) => {
       const target = (opt as { target?: fabric.FabricObject }).target;
-      this.onManagedTextChanged(target);
+      if (this.managedLayoutAllowed()) this.managed.onTextChanged(target);
     });
     this.on("object:modified", (e) => {
       const target = e.target;
@@ -329,31 +303,12 @@ export class CustomCanvas extends fabric.Canvas {
     return { axis: layout.axis, gap: shift };
   }
 
-  private displayLayout(): TwoPieceLayout | null {
+  /** The pieces as the editor shows them, with the gap collapsed. */
+  displayLayout(): TwoPieceLayout | null {
     const layout = this.getTwoPieceLayout();
     if (!layout) return null;
     const collapse = this.layoutGapShift();
-    if (!collapse) return layout;
-    const [a, b] = layout.pieces;
-    const shown = layout.gap - collapse.gap;
-    if (layout.axis === "vertical") {
-      const nextB = { ...b, x: b.x - collapse.gap };
-      return {
-        ...layout,
-        pieces: [a, nextB],
-        gap: shown,
-        gapRect: { x: a.x + a.width, y: a.y, width: shown, height: a.height },
-        flipAxis: a.x + a.width + shown / 2,
-      };
-    }
-    const nextB = { ...b, y: b.y - collapse.gap };
-    return {
-      ...layout,
-      pieces: [a, nextB],
-      gap: shown,
-      gapRect: { x: a.x, y: a.y + a.height, width: a.width, height: shown },
-      flipAxis: a.y + a.height + shown / 2,
-    };
+    return collapse ? collapseLayout(layout, collapse.gap) : layout;
   }
 
   private tailDrawShift(): { x: number; y: number } {
@@ -479,93 +434,13 @@ export class CustomCanvas extends fabric.Canvas {
 
   /** Get label bounds without tail */
   getLabelBounds(): LabelBounds {
-    let endX = this.logicalSize().width;
-    let endY = this.logicalSize().height;
-    let startX = 0;
-    let startY = 0;
-
-    if (this.labelProps.tailPos === "right") {
-      endX -= this.labelProps.tailLength ?? 0;
-    } else if (this.labelProps.tailPos === "bottom") {
-      endY -= this.labelProps.tailLength ?? 0;
-    } else if (this.labelProps.tailPos === "left") {
-      startX += this.labelProps.tailLength ?? 0;
-    } else if (this.labelProps.tailPos === "top") {
-      startY += this.labelProps.tailLength ?? 0;
-    }
-
-    const width = endX - startX;
-    const height = endY - startY;
-
-    return { startX, startY, endX, endY, width, height };
+    const { width, height } = this.logicalSize();
+    return labelBounds(this.labelProps, width, height);
   }
 
-  /**
-   * Two explicit pieces plus a gap.
-   * Missing sizes keep the equal-slice layout used by older labels.
-   */
-  private getTwoPieceLayout(): TwoPieceLayout | null {
-    const split = this.labelProps.split ?? "none";
-    const sizeA = this.labelProps.splitSizeA;
-    const sizeB = this.labelProps.splitSizeB;
-    if ((split !== "vertical" && split !== "horizontal") || sizeA === undefined || sizeB === undefined) {
-      return null;
-    }
-    if (!(sizeA > 0) || !(sizeB > 0)) {
-      return null;
-    }
-
-    const bb = this.getLabelBounds();
-    const shapeA = this.labelProps.shapeA ?? this.labelProps.shape ?? "rect";
-    const shapeB = this.labelProps.shapeB ?? this.labelProps.shape ?? "rect";
-
-    if (split === "vertical") {
-      const gap = bb.width - sizeA - sizeB;
-      if (gap < 0) return null;
-      return {
-        axis: "vertical",
-        pieces: [
-          { x: bb.startX, y: bb.startY, width: sizeA, height: bb.height, shape: shapeA },
-          { x: bb.endX - sizeB, y: bb.startY, width: sizeB, height: bb.height, shape: shapeB },
-        ],
-        gap,
-        gapRect: { x: bb.startX + sizeA, y: bb.startY, width: gap, height: bb.height },
-        flipAxis: bb.startX + sizeA + gap / 2,
-      };
-    }
-
-    const gap = bb.height - sizeA - sizeB;
-    if (gap < 0) return null;
-    return {
-      axis: "horizontal",
-      pieces: [
-        { x: bb.startX, y: bb.startY, width: bb.width, height: sizeA, shape: shapeA },
-        { x: bb.startX, y: bb.endY - sizeB, width: bb.width, height: sizeB, shape: shapeB },
-      ],
-      gap,
-      gapRect: { x: bb.startX, y: bb.startY + sizeA, width: bb.width, height: gap },
-      flipAxis: bb.startY + sizeA + gap / 2,
-    };
-  }
-
-  private tracePiece(ctx: CanvasRenderingContext2D, piece: SplitPiece) {
-    const { x, y, width, height, shape } = piece;
-    if (width <= 0 || height <= 0) return;
-
-    if (shape === "circle") {
-      const radius = Math.min(width, height) / 2;
-      ctx.moveTo(x + width / 2 + radius, y + height / 2);
-      ctx.arc(x + width / 2, y + height / 2, radius, 0, Math.PI * 2);
-      return;
-    }
-
-    if (shape === "rounded_rect") {
-      const radius = Math.min(this.cornerRadius(), width / 2, height / 2);
-      ctx.roundRect(x, y, width, height, radius);
-      return;
-    }
-
-    ctx.rect(x, y, width, height);
+  /** The real pieces and gap, as printed. */
+  getTwoPieceLayout(): TwoPieceLayout | null {
+    return twoPieceLayout(this.labelProps, this.getLabelBounds());
   }
 
   /** Get fold line position for splitted labels */
@@ -726,7 +601,7 @@ export class CustomCanvas extends fabric.Canvas {
     const splitParts = this.labelProps.splitParts ?? 2;
 
     if (layout) {
-      layout.pieces.forEach((piece) => this.tracePiece(ctx, piece));
+      layout.pieces.forEach((piece) => tracePiece(ctx, piece, this.cornerRadius()));
     } else if (this.labelProps.shape === "rounded_rect") {
       if (this.labelProps.split === "horizontal") {
         const segmentHeight = bb.height / splitParts;
@@ -978,13 +853,18 @@ export class CustomCanvas extends fabric.Canvas {
     super.centerObjectV(object);
   }
 
+  /** Layout runs in the editor only, and not while a label is loading or being laid out. */
+  private managedLayoutAllowed(): boolean {
+    return this.customBackground && !this.showPhysicalGap && !this.suspendManagedLayout && !this.layoutQuiet;
+  }
+
   /**
    * Fit the primary text, the split copy, and the bottom date.
    * "primary" refits the main box and the copy. "secondary" refits only the copy.
    */
   layoutManagedText(mode: "all" | "primary" | "secondary" = "all") {
-    if (!this.customBackground || this.showPhysicalGap || this.suspendManagedLayout || this.layoutQuiet) return;
-    this.applyManagedLayout(mode);
+    if (!this.managedLayoutAllowed()) return;
+    this.managed.apply(mode);
   }
 
   /**
@@ -993,310 +873,25 @@ export class CustomCanvas extends fabric.Canvas {
    */
   layoutManagedTextForOutput() {
     if (this.layoutQuiet || this.suspendManagedLayout) return;
-    this.applyManagedLayout("all", true);
+    this.managed.apply("all", true);
   }
 
-  private applyManagedLayout(mode: "all" | "primary" | "secondary", physical = false) {
-    this.layoutQuiet = true;
-    try {
-      const showDate = this.labelProps.date?.show !== false;
-      if (mode === "all" && !showDate) this.removeDate();
-      const date = !showDate ? undefined : mode === "all" ? this.ensureDate() : this.findRole("date");
-      let dateHeight = date?.height ?? 0;
-      if (mode === "all" && date) {
-        const limit = this.managedFrames(0, physical).date;
-        sizeDateText(date, this.dateStamp(), limit.labelHeight, limit.maxWidth, limit.maxHeight);
-        dateHeight = date.height;
-      }
-      let frames = this.managedFrames(dateHeight, physical);
-      if (mode === "all" && date && (date.height > frames.date.maxHeight || date.calcTextWidth() > frames.date.maxWidth)) {
-        sizeDateText(date, this.dateStamp(), frames.date.labelHeight, frames.date.maxWidth, frames.date.maxHeight);
-        frames = this.managedFrames(date.height, physical);
-      }
-      if (mode === "all" && date) this.placeDate(date, frames);
-      if (mode === "all" || mode === "primary") this.fitPrimary(frames);
-      if (mode === "all" || mode === "primary" || mode === "secondary") this.fitSecondary(frames);
-      if (date) this.bringObjectToFront(date);
-      for (const role of ["primary", "secondary"] as const) {
-        const box = this.findRole(role);
-        if (box) box.lastLayoutFont = fontKey(box);
-      }
-      this.requestRenderAll();
-    } finally {
-      this.layoutQuiet = false;
-    }
-  }
-
-  private onManagedTextChanged(target?: fabric.FabricObject) {
-    if (this.layoutQuiet || this.suspendManagedLayout || !this.customBackground || this.showPhysicalGap) return;
-    if (!(target instanceof TextboxExt)) return;
-    if (target.labelRole !== "primary" && target.labelRole !== "secondary") return;
-    const prev = target.lastLayoutText ?? "";
-    const next = target.text ?? "";
-    if (next === prev) return;
-    const linesChanged = newlineCount(next) !== newlineCount(prev);
-    const firstChanged = firstLine(next) !== firstLine(prev);
-    target.lastLayoutText = next;
-    if (target.labelRole === "secondary") {
-      if (linesChanged) this.layoutManagedText("secondary");
-      return;
-    }
-    if (linesChanged) this.layoutManagedText("primary");
-    else {
-      this.lockPrimaryWrap(target, prev);
-      if (firstChanged) this.layoutManagedText("secondary");
-    }
-  }
-
-  /**
-   * Call after a text control changed a managed box. A new main font carries over to the copy
-   * and the date, then the label refits. Size-only edits are left alone.
-   */
+  /** Call after a text control changed a managed box; a new main font carries to the copy and date. */
   syncManagedFont(target?: fabric.FabricObject) {
-    if (!(target instanceof TextboxExt)) return;
-    if (target.labelRole !== "primary" && target.labelRole !== "secondary") return;
-    if (fontKey(target) === target.lastLayoutFont) return;
-    if (target.labelRole === "primary") {
-      const { fontFamily, fontWeight, fontStyle } = target;
-      this.findRole("secondary")?.set({ fontFamily, fontWeight, fontStyle });
-      this.findRole("date")?.set({ fontFamily });
-      this.layoutManagedText("all");
-    } else {
-      this.layoutManagedText("secondary");
-    }
-  }
-
-  private textboxes(): TextboxExt[] {
-    return this.getObjects().filter((obj): obj is TextboxExt => obj instanceof TextboxExt);
-  }
-
-  private findRole(role: "primary" | "secondary" | "date"): TextboxExt | undefined {
-    return this.textboxes().find((obj) => obj.labelRole === role);
-  }
-
-  private createRole(role: "primary" | "secondary" | "date", text: string): TextboxExt {
-    // A new copy or date uses the main text's font.
-    const primary = role === "primary" ? undefined : this.findRole("primary");
-    const box = new TextboxExt(text, {
-      ...OBJECT_DEFAULTS_TEXT,
-      ...(primary ? { fontFamily: primary.fontFamily } : {}),
-      labelRole: role,
-    });
-    this.add(box);
-    return box;
+    this.managed.syncFont(target);
   }
 
   /** Date text for this label, from its date settings. */
   dateStamp(): string {
-    return dateStamp(this.labelProps.date);
+    return this.managed.dateStamp();
   }
 
-  private ensureDate(): TextboxExt {
-    const existing = this.findRole("date");
-    if (existing) return existing;
-    return this.createRole("date", this.dateStamp());
-  }
-
-  /** The label has its date turned off. */
-  private removeDate() {
-    const date = this.findRole("date");
-    if (!date) return;
-    if (this.getActiveObject() === date) this.discardActiveObject();
-    this.remove(date);
-  }
-
-  private managedFrames(dateHeight: number, physical = false): {
-    primary: SplitPiece;
-    secondary?: SplitPiece;
-    primaryStopsForDate: boolean;
-    textLimitY: number;
-    date: {
-      visualX: number;
-      visualBottom: number;
-      offsetX: number;
-      offsetY: number;
-      maxWidth: number;
-      maxHeight: number;
-      labelHeight: number;
-    };
-  } {
-    const bounds = this.getLabelBounds();
-    // Print and thumbnails must use the real gap. The editor frame has it removed.
-    const display = physical ? this.getTwoPieceLayout() : this.displayLayout();
-    const band = dateHeight + this.EDGE_MARGIN;
-    if (!display) {
-      return {
-        primary: {
-          x: bounds.startX,
-          y: bounds.startY,
-          width: bounds.width,
-          height: bounds.height,
-          shape: this.labelProps.shape ?? "rect",
-        },
-        primaryStopsForDate: true,
-        textLimitY: bounds.endY - band,
-        date: {
-          visualX: bounds.startX + bounds.width / 2,
-          visualBottom: bounds.endY,
-          offsetX: 0,
-          offsetY: 0,
-          maxWidth: Math.max(1, bounds.width),
-          maxHeight: Math.max(1, bounds.height - 2 * this.EDGE_MARGIN),
-          labelHeight: bounds.height,
-        },
-      };
-    }
-
-    const [topOrLeft, bottomOrRight] = display.pieces;
-    const mainBottom = topOrLeft.y + topOrLeft.height;
-    return {
-      primary: topOrLeft,
-      secondary: bottomOrRight,
-      primaryStopsForDate: true,
-      textLimitY: mainBottom - band,
-      date: {
-        visualX: topOrLeft.x + topOrLeft.width / 2,
-        visualBottom: mainBottom,
-        offsetX: 0,
-        offsetY: 0,
-        maxWidth: Math.max(1, topOrLeft.width),
-        maxHeight: Math.max(1, topOrLeft.height - 2 * this.EDGE_MARGIN),
-        labelHeight: bounds.height,
-      },
-    };
-  }
-
-  private placeDate(
-    date: TextboxExt,
-    frames: {
-      date: { visualX: number; visualBottom: number; offsetX: number; offsetY: number };
-    },
-  ) {
-    date.set({
-      originX: "center",
-      originY: "bottom",
-      angle: 0,
-      editable: false,
-      selectable: false,
-      evented: false,
-      hasControls: false,
-      hasBorders: false,
-      lockMovementX: true,
-      lockMovementY: true,
-      hoverCursor: "default",
-    });
-    date.setPositionByOrigin(
-      new fabric.Point(frames.date.visualX, frames.date.visualBottom - this.EDGE_MARGIN),
-      "center",
-      "bottom",
-    );
-    const gap = date as GapObject;
-    if (frames.date.offsetX) gap.gapOffsetX = frames.date.offsetX;
-    else delete gap.gapOffsetX;
-    if (frames.date.offsetY) gap.gapOffsetY = frames.date.offsetY;
-    else delete gap.gapOffsetY;
-    date.setCoords();
-    date.lastLayoutText = date.text;
-    date.dirty = true;
-  }
-
-  private areaAboveDate(piece: SplitPiece, stopAtDate: boolean, textLimitY: number): TextArea {
-    const top = piece.y + this.EDGE_MARGIN;
-    const pieceBottom = piece.y + piece.height - this.EDGE_MARGIN;
-    const bottom = stopAtDate ? Math.min(pieceBottom, textLimitY) : pieceBottom;
-    return {
-      x: piece.x,
-      y: top,
-      width: Math.max(1, piece.width),
-      height: Math.max(1, bottom - top),
-    };
-  }
-
-  private fitPrimary(frames: { primary: SplitPiece; primaryStopsForDate: boolean; textLimitY: number }) {
-    let box = this.findRole("primary");
-    if (!box) {
-      const candidate = this.textboxes().find((obj) => !obj.labelRole);
-      if (candidate) {
-        candidate.labelRole = "primary";
-        box = candidate;
-      }
-    }
-    if (!box) box = this.createRole("primary", this.defaultLabelText);
-    placeFittedText(box, box.text ?? "", this.areaAboveDate(frames.primary, frames.primaryStopsForDate, frames.textLimitY));
-    box.lastLayoutText = box.text;
-    this.holdPiece(box, false);
-  }
-
-  private fitSecondary(frames: { secondary?: SplitPiece; textLimitY: number }) {
-    const existing = this.findRole("secondary");
-    if (!frames.secondary) {
-      if (!existing) return;
-      if (this.getActiveObject() === existing) this.discardActiveObject();
-      this.remove(existing);
-      return;
-    }
-    const { text: source, stacked } = secondaryText(this.findRole("primary")?.text ?? "");
-    const box = existing ?? this.createRole("secondary", source);
-    box.labelRole = "secondary";
-    const pieceBottom = frames.secondary.y + frames.secondary.height;
-    if (frames.secondary.shape === "circle") {
-      placeCircleText(box, source, frames.secondary, pieceBottom - this.EDGE_MARGIN, stacked, frames.secondary.y + this.EDGE_MARGIN);
-    } else {
-      placeFittedText(box, source, this.areaAboveDate(frames.secondary, false, frames.textLimitY));
-    }
-    box.lastLayoutText = box.text;
-    this.holdPiece(box, true);
-  }
-
-  /**
-   * Keep the main box at the piece width so words wrap before Enter.
-   * Typing keeps the font unless a wrapped word would run into the date.
-   * Deleting refits, so the font can grow back.
-   */
-  private lockPrimaryWrap(box: TextboxExt, prevText: string) {
-    const dateHeight = this.findRole("date")?.height ?? 0;
-    const frames = this.managedFrames(dateHeight);
-    const area = this.areaAboveDate(frames.primary, frames.primaryStopsForDate, frames.textLimitY);
-    const pieceWidth = Math.max(1, area.width);
-    const shorter = (box.text ?? "").length < prevText.length;
-    this.layoutQuiet = true;
-    try {
-      box.dynamicMinWidth = 0;
-      box.set({
-        width: pieceWidth,
-        splitByGrapheme: false,
-        textAlign: "center",
-        originX: "center",
-        originY: "center",
-        scaleX: 1,
-        scaleY: 1,
-        angle: 0,
-      });
-      box.dynamicMinWidth = 0;
-      box.width = pieceWidth;
-      box.initDimensions();
-      const overflows = box.height > area.height + 0.5 || box.dynamicMinWidth > pieceWidth + 0.5;
-      if (overflows || shorter) {
-        placeFittedText(box, box.text ?? "", area);
-        box.lastLayoutText = box.text;
-        this.holdPiece(box, false);
-        return;
-      }
-      box.setPositionByOrigin(
-        new fabric.Point(area.x + area.width / 2, area.y + area.height / 2),
-        "center",
-        "center",
-      );
-      box.setCoords();
-      box.dirty = true;
-      this.holdPiece(box, false);
-    } finally {
-      this.layoutQuiet = false;
-    }
+  getLabelProps(): LabelProps {
+    return this.labelProps;
   }
 
   /** Remember which piece a fitted box belongs to without sliding it again. */
-  private holdPiece(box: TextboxExt, onSecond: boolean) {
+  holdPiece(box: fabric.FabricObject, onSecond: boolean) {
     const collapse = this.layoutGapShift();
     const gap = box as GapObject;
     if (!collapse) {
