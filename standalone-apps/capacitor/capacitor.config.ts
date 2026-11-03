@@ -8,6 +8,10 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 0,
     },
+    // The app is always dark: light status bar and gesture bar icons.
+    SystemBars: {
+      style: "DARK",
+    },
   },
   android: {
     buildOptions: {

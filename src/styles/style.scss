@@ -14,8 +14,31 @@
 @import "bootstrap/scss/transitions";
 @import "font";
 
+/*
+ * The phone app draws edge to edge (viewport-fit=cover): the background runs under the status
+ * bar and the gesture bar, and the content is padded clear of them. Capacitor also sets
+ * --safe-area-inset-* for WebViews whose env() values are wrong; take whichever is larger.
+ * In a browser these are all 0.
+ */
+:root {
+  --app-inset-top: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
+  --app-inset-right: max(var(--safe-area-inset-right, 0px), env(safe-area-inset-right, 0px));
+  --app-inset-bottom: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
+  --app-inset-left: max(var(--safe-area-inset-left, 0px), env(safe-area-inset-left, 0px));
+}
+
 body {
   font-family: "Noto Sans Variable", sans-serif;
+  padding: var(--app-inset-top) var(--app-inset-right) var(--app-inset-bottom) var(--app-inset-left);
+}
+
+/* The page fills the screen between the bars, not the whole screen. */
+.page-wrapper.min-vh-100 {
+  min-height: calc(100vh - var(--app-inset-top) - var(--app-inset-bottom)) !important;
+}
+
+.toastify.toastify-bottom {
+  margin-bottom: var(--app-inset-bottom);
 }
 
 .toastify.toast-danger {
