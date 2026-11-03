@@ -2,6 +2,7 @@
   import type { LabelPreset, LabelShape } from "$/types";
   import { tr } from "$/utils/i18n";
   import MdIcon from "$/components/basic/MdIcon.svelte";
+  import { LABEL_CORNER_RADIUS_MM } from "$/defaults";
 
   interface Props {
     onItemSelected: (index: number) => void;
@@ -24,8 +25,9 @@
   /** Edit mode shows a large delete button on each tile and stops taps from applying presets. */
   let editing = $state<boolean>(false);
 
-  /** Same corner radius as the editor (10 px), in the preset's unit. */
-  const cornerRadius = (preset: LabelPreset): number => (preset.unit === "mm" ? 10 / preset.dpmm : 10);
+  /** Same corner radius as the editor, in the preset's unit. */
+  const cornerRadius = (preset: LabelPreset): number =>
+    preset.unit === "mm" ? LABEL_CORNER_RADIUS_MM : LABEL_CORNER_RADIUS_MM * preset.dpmm;
 
   /** The label drawn in its own units: pieces, gap and tail, like the editor background. */
   const outline = (preset: LabelPreset): Outline => {

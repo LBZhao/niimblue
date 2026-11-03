@@ -1,5 +1,11 @@
 import * as fabric from "fabric";
-import { DEFAULT_LABEL_PROPS, GRID_SIZE, OBJECT_DEFAULTS_TEXT } from "$/defaults";
+import {
+  DEFAULT_LABEL_PROPS,
+  FALLBACK_DPMM,
+  GRID_SIZE,
+  LABEL_CORNER_RADIUS_MM,
+  OBJECT_DEFAULTS_TEXT,
+} from "$/defaults";
 import { TextboxExt } from "$/fabric-object/textbox-ext";
 import type { LabelProps, LabelShape } from "$/types";
 import {
@@ -58,7 +64,6 @@ for (const prop of extraGapProps) {
 export class CustomCanvas extends fabric.Canvas {
   private labelProps: LabelProps = DEFAULT_LABEL_PROPS;
   private readonly SEPARATOR_LINE_WIDTH = 2;
-  private readonly ROUND_RADIUS = 10;
   private readonly TAIL_WIDTH = 40;
   private readonly GRAY = "#CFCFCF";
   /** Backing paper around the pieces in thumbnails. Darker than GRAY so white pieces read clearly. */
@@ -68,8 +73,6 @@ export class CustomCanvas extends fabric.Canvas {
   private readonly EDGE_MARGIN = 3;
   /** Gap shown between split pieces in the editor. */
   private readonly EDITOR_GAP_MM = 1;
-  /** Used for labels saved before dpmm was stored. */
-  private readonly FALLBACK_DPMM = 8;
   private customBackground: boolean = true;
   private highlightMirror: boolean = true;
   private gridEnabled: boolean = false;
@@ -302,9 +305,14 @@ export class CustomCanvas extends fabric.Canvas {
     this.requestRenderAll();
   }
 
+  /** Rounded corners are a fixed size in mm, so they look the same at any dpi. */
+  private cornerRadius(): number {
+    return Math.round(LABEL_CORNER_RADIUS_MM * (this.labelProps.dpmm ?? FALLBACK_DPMM));
+  }
+
   /** Gap the editor keeps between the two pieces, in pixels. */
   private editorGap(physicalGap: number): number {
-    const dpmm = this.labelProps.dpmm ?? this.FALLBACK_DPMM;
+    const dpmm = this.labelProps.dpmm ?? FALLBACK_DPMM;
     return Math.min(physicalGap, Math.round(this.EDITOR_GAP_MM * dpmm));
   }
 
@@ -552,7 +560,7 @@ export class CustomCanvas extends fabric.Canvas {
     }
 
     if (shape === "rounded_rect") {
-      const radius = Math.min(this.ROUND_RADIUS, width / 2, height / 2);
+      const radius = Math.min(this.cornerRadius(), width / 2, height / 2);
       ctx.roundRect(x, y, width, height, radius);
       return;
     }
@@ -658,7 +666,7 @@ export class CustomCanvas extends fabric.Canvas {
       return;
     }
 
-    let roundRadius = this.ROUND_RADIUS;
+    let roundRadius = this.cornerRadius();
     const bb = this.getLabelBounds();
     const fold = this.getFoldInfo();
 
@@ -769,7 +777,7 @@ export class CustomCanvas extends fabric.Canvas {
       const separatorInset = layout
         ? Math.min(
             ...layout.pieces.map((piece) =>
-              piece.shape === "rounded_rect" ? Math.min(this.ROUND_RADIUS, piece.width / 2, piece.height / 2) : 0,
+              piece.shape === "rounded_rect" ? Math.min(this.cornerRadius(), piece.width / 2, piece.height / 2) : 0,
             ),
           )
         : roundRadius;

@@ -45,6 +45,12 @@ export const DEFAULT_LABEL_PROPS: LabelProps = {
   },
 };
 
+/** Corner radius of rounded label shapes, drawn in the editor, thumbnails and preset tiles. */
+export const LABEL_CORNER_RADIUS_MM = 1;
+
+/** Dots per mm assumed for labels saved before dpmm was stored. */
+export const FALLBACK_DPMM = 8;
+
 /** Object movement snapping */
 export const GRID_SIZE: number = 5;
 
