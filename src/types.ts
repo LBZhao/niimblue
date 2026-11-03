@@ -101,10 +101,12 @@ export const ExportedLabelTemplateSchema = z.object({
 
 const [firstTask, ...otherTasks] = printTaskNames;
 
+/** Moves the print by printer pixels: x to the right, y down (as the preview shows it). */
 export const PreviewPropsOffsetSchema = z.object({
   x: z.number(),
   y: z.number(),
-  offsetType: z.enum(["inner", "outer"]),
+  /** No longer used: saved settings from the old Inner/Outer menu still load. */
+  offsetType: z.enum(["inner", "outer"]).optional(),
 });
 
 const PostProcessTypeSchema = z.enum([

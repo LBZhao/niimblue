@@ -71,7 +71,7 @@
   let csvParsed: DSVRowArray<string>;
   let currentPage = $state<number>(0);
   let pagesTotal = $state<number>(1);
-  let offset = $state<PreviewPropsOffset>({ x: 0, y: 0, offsetType: "inner" });
+  let offset = $state<PreviewPropsOffset>({ x: 0, y: 0 });
   let offsetWarning = $state<string>("");
   let currentPrintTask: AbstractPrintTask | undefined;
   let savedProps = $state<PreviewProps>({});
@@ -81,6 +81,9 @@
   let effectivePrintDirection = $derived(
     printDirectionForPrinter(labelProps.printDirection, $printerMeta, $connectedPrinterName),
   );
+
+  /** Pixels to millimetres for the hint under the move fields. */
+  const offsetMm = (px: number): string => ((Number(px) || 0) / (labelProps.dpmm ?? 8)).toFixed(1);
 
   const labelTypeTranslationKey = (labelType: string): TranslationKey =>
     `preview.label_type.${labelType}` as TranslationKey;
@@ -227,19 +230,18 @@
 
     offsetWarning = "";
 
-    if (offset.offsetType === "inner") {
-      previewCanvas.width = originalImage.width;
-      previewCanvas.height = originalImage.height;
-      previewContext.fillStyle = "white";
-      previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-      previewContext.putImageData(iData, offset.x, offset.y);
-    } else {
-      previewCanvas.width = originalImage.width + Math.abs(offset.x);
-      previewCanvas.height = originalImage.height + Math.abs(offset.y);
-      previewContext.fillStyle = "white";
-      previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-      previewContext.putImageData(iData, Math.max(offset.x, 0), Math.max(offset.y, 0));
-    }
+    // The printer centres the image across its printhead and starts at the label's leading edge.
+    // Across the head: pad both sides, so the centred image moves by exactly the offset and nothing is cut.
+    // Along the feed: keep the length and move inside it, so nothing prints past the label.
+    const moveX = Math.round(Number(offset.x) || 0);
+    const moveY = Math.round(Number(offset.y) || 0);
+    const acrossIsX = effectivePrintDirection === "top";
+    const pad = Math.abs(acrossIsX ? moveX : moveY);
+    previewCanvas.width = originalImage.width + (acrossIsX ? 2 * pad : 0);
+    previewCanvas.height = originalImage.height + (acrossIsX ? 0 : 2 * pad);
+    previewContext.fillStyle = "white";
+    previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+    previewContext.putImageData(iData, acrossIsX ? pad + moveX : moveX, acrossIsX ? moveY : pad + moveY);
 
     if ($printerMeta !== undefined) {
       const headSize = effectivePrintDirection == "left" ? previewCanvas.height : previewCanvas.width;
@@ -687,15 +689,12 @@
         type="number"
         bind:value={offset.y}
         onchange={() => updateSavedProp("offset", offset, true)} />
-      <select
-        class="form-select"
-        bind:value={offset.offsetType}
-        onchange={() => updateSavedProp("offset", offset, true)}>
-        <option value="inner">{$tr("preview.offset.inner")}</option>
-        <option value="outer">{$tr("preview.offset.outer")}</option>
-      </select>
 
       <ParamLockButton propName="offset" value={offset} savedValue={savedProps.offset} onClick={toggleSavedProp} />
+    </div>
+    <!-- Printer pixels: what the move is on paper, for this label's dpi. -->
+    <div class="form-text w-100 text-end mt-0">
+      px · ≈ {offsetMm(offset.x)} mm ↔ · {offsetMm(offset.y)} mm ↕
     </div>
 
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{$tr("preview.close")}</button>
