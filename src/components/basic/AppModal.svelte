@@ -14,6 +14,9 @@
 
   let modalEl: HTMLElement;
   let modal: Modal;
+  /** Bootstrap ignores hide() while the open animation runs, so remember the request. */
+  let shown = false;
+  let hideRequested = false;
 
   onMount(() => {
     modal = new Modal(modalEl);
@@ -23,7 +26,14 @@
       if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     });
 
+    modalEl.addEventListener("shown.bs.modal", () => {
+      shown = true;
+      if (hideRequested) modal.hide();
+    });
+
     modalEl.addEventListener("hidden.bs.modal", () => {
+      shown = false;
+      hideRequested = false;
       if (onClose) onClose();
       show = false;
     });
@@ -38,9 +48,12 @@
   });
 
   export const hide = () => {
-    if (modal) {
-      modal.hide();
+    if (!modal) return;
+    if (!shown) {
+      hideRequested = true;
+      return;
     }
+    modal.hide();
   };
 </script>
 
