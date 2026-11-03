@@ -1,0 +1,126 @@
+name: Build Android app
+
+# Push a tag like v2026.11.0 to build NiimBlue LZ and attach the APK to a GitHub release.
+# Run it by hand from the Actions tab to get the APK as a downloadable artifact.
+#
+# Signing: with the KEYSTORE_BASE_64, KEYSTORE_ALIAS and KEYSTORE_PASSWORD secrets set, the APK is
+# release-signed with your key, so new versions install over old ones. Without them it is a
+# debug build signed with a throwaway key, for testing only.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CAPACITOR_PROJECT_DIR: ./standalone-apps/capacitor
+  HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE_64 != '' }}
+
+jobs:
+  build-android-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            ./package-lock.json
+            ./standalone-apps/capacitor/package-lock.json
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-36 build-tools;36.0.0"
+          log-accepted-android-sdk-licenses: false
+
+      - name: Add build tools to PATH for apksigner
+        run: echo "$ANDROID_HOME/build-tools/36.0.0" >> "$GITHUB_PATH"
+
+      - name: Version
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=0.0.0-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Capacitor dependencies
+        working-directory: ${{ env.CAPACITOR_PROJECT_DIR }}
+        run: npm ci
+
+      - name: Build web app
+        working-directory: ${{ env.CAPACITOR_PROJECT_DIR }}
+        run: npm run build-www
+        env:
+          COMMIT_HASH: ${{ github.sha }}
+          COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+
+      - name: Make gradlew executable
+        working-directory: ${{ env.CAPACITOR_PROJECT_DIR }}
+        run: chmod +x ./android/gradlew
+
+      - name: Decode keystore
+        if: env.HAS_KEYSTORE == 'true'
+        run: mkdir -p "$RUNNER_TEMP/keystore" && echo "$KEYSTORE_BASE_64" | base64 -d > "$RUNNER_TEMP/keystore/release.jks"
+        env:
+          KEYSTORE_BASE_64: ${{ secrets.KEYSTORE_BASE_64 }}
+
+      - name: Build signed release APK
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: ${{ env.CAPACITOR_PROJECT_DIR }}
+        run: |
+          npm run build-android
+          cp android/app/build/outputs/apk/release/app-release-signed.apk "$RUNNER_TEMP/niimblue-lz-${{ steps.version.outputs.name }}.apk"
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/keystore/release.jks
+          KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          APP_VERSION: ${{ steps.version.outputs.name }}
+          APP_VERSION_CODE: ${{ github.run_number }}
+
+      - name: Build debug APK (no signing key set)
+        if: env.HAS_KEYSTORE != 'true'
+        working-directory: ${{ env.CAPACITOR_PROJECT_DIR }}
+        run: |
+          npx cap sync android
+          (cd android && ./gradlew assembleDebug)
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/niimblue-lz-${{ steps.version.outputs.name }}-debug.apk"
+        env:
+          APP_VERSION: ${{ steps.version.outputs.name }}
+          APP_VERSION_CODE: ${{ github.run_number }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: niimblue-lz-${{ steps.version.outputs.name }}
+          path: ${{ runner.temp }}/niimblue-lz-*.apk
+
+      - name: Attach APK to the release
+        if: github.ref_type == 'tag'
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP"/niimblue-lz-*.apk --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}

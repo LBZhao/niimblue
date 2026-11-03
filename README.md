@@ -16,6 +16,11 @@ Tested on a **NIIMBOT M2_H** (300 dpi, 36.5 × 9.5 mm split labels: a 25 mm roun
 - **Easier on a phone**: saved labels and label presets are shown in two columns with real-shape previews, and an Edit mode with large delete buttons and a confirmation.
 - **Fixes**: label thumbnails are drawn at the real label size, and M2 printers are detected and set to the top print direction.
 
+### Install and build
+
+- **Android app:** download the APK from this repository's [Releases](https://github.com/LBZhao/niimblue/releases). Pushing a tag like `v2026.11.0` builds it with GitHub Actions (`.github/workflows/build-android-app.yml`).
+- **Checks:** `npm run lint`, `npm run sv-check` and `npm test` (browser tests in Chrome) run on every push.
+
 ### Credits
 
 - **[NiimBlue](https://github.com/MultiMote/niimblue)** by MultiMote and its contributors, MIT License — the app this edition is built on. Translations by the NiimBlue community on [Weblate](https://weblate.mmote.ru/engage/niimblue/).
