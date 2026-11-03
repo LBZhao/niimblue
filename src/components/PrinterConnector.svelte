@@ -27,10 +27,12 @@
   import type { MaterialIcon } from "material-icons";
   import FirmwareUpdater from "$/components/basic/FirmwareUpdater.svelte";
   import PrinterVerboseInfo from "$/components/PrinterVerboseInfo.svelte";
+  import PrinterPicker from "$/components/basic/PrinterPicker.svelte";
 
   let connectionType = $state<ConnectionType>("bluetooth");
   let featureSupport = $state<AvailableTransports>({ webBluetooth: false, webSerial: false, capacitorBle: false });
   let verboseInfoShow = $state<boolean>(false);
+  let pickerShow = $state<boolean>(false);
 
   const percentage = (cur?: number, total?: number) => {
     if (cur === undefined || total === undefined) {
@@ -42,6 +44,13 @@
 
   const onConnectClicked = async () => {
     initClient(connectionType);
+
+    // The system picker in the app lists every nearby device; ours shows printers only.
+    if ($printerClient instanceof NiimbotCapacitorBleClient && $automation?.autoConnectDeviceId === undefined) {
+      pickerShow = true;
+      return;
+    }
+
     connectionState.set("connecting");
 
     try {
@@ -50,6 +59,20 @@
       } else {
         await $printerClient.connect();
       }
+    } catch (e) {
+      connectionState.set("disconnected");
+      Toasts.error(e);
+    }
+  };
+
+  const onPrinterPicked = async (deviceId: string, name: string) => {
+    const client = $printerClient;
+    if (!(client instanceof NiimbotCapacitorBleClient)) return;
+    connectionState.set("connecting");
+    try {
+      await client.connect({ deviceId });
+      // Connecting by id reports the id as the name; show the printer's name instead.
+      connectedPrinterName.set(name);
     } catch (e) {
       connectionState.set("disconnected");
       Toasts.error(e);
@@ -315,6 +338,10 @@
     <PrinterVerboseInfo bind:show={verboseInfoShow} />
   {/if}
 </div>
+
+{#if pickerShow}
+  <PrinterPicker bind:show={pickerShow} onPick={onPrinterPicked} />
+{/if}
 
 <style>
   .dropdown-menu {
