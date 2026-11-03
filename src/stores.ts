@@ -3,6 +3,7 @@ import {
   AppConfigSchema,
   CsvParamsSchema,
   ExportedLabelTemplateSchema,
+  LastPrinterSchema,
   UserFontSchema,
   UserIconSchema,
   type CsvParams,
@@ -10,6 +11,7 @@ import {
   type UserIcon,
   type AppConfig,
   type ExportedLabelTemplate,
+  type LastPrinter,
   type AutomationProps,
   type ConnectionState,
   type ConnectionType,
@@ -48,6 +50,8 @@ export const rfidInfo = writable<CombinedRfidInfo>({});
 export const printerMeta = writable<PrinterModelMeta | undefined>();
 export const heartbeatFails = writable<number>(0);
 export const csvData = writablePersisted<CsvParams>("csv_params", CsvParamsSchema, { data: CSV_DEFAULT });
+/** Printer to reconnect to without searching the whole list. */
+export const lastPrinter = writablePersisted<LastPrinter | null>("last_printer", LastPrinterSchema.nullable(), null);
 /** Labels printed most recently, newest first. */
 export const recentPrints = writablePersisted<ExportedLabelTemplate[]>(
   "recent_prints",

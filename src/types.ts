@@ -140,6 +140,14 @@ export const AppConfigSchema = z.object({
   gridEnabled: z.boolean().optional(),
 });
 
+/** The printer last connected over Bluetooth in the app. */
+export const LastPrinterSchema = z.object({
+  deviceId: z.string(),
+  name: z.string(),
+  /** Look for this printer and connect when the app opens. */
+  autoConnect: z.boolean().optional(),
+});
+
 export const UserIconSchema = z.object({
   name: z.string(),
   data: z.string(),
@@ -164,3 +172,4 @@ export type PreviewProps = z.infer<typeof PreviewPropsSchema>;
 export type AutomationProps = z.infer<typeof AutomationPropsSchema>;
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 export type UserFont = z.infer<typeof UserFontSchema>;
+export type LastPrinter = z.infer<typeof LastPrinterSchema>;

@@ -17,6 +17,7 @@
     heartbeatFails,
     automation,
     rfidInfo,
+    lastPrinter,
   } from "$/stores";
   import type { ConnectionType } from "$/types";
   import { tr, type TranslationKey } from "$/utils/i18n";
@@ -33,6 +34,11 @@
   let featureSupport = $state<AvailableTransports>({ webBluetooth: false, webSerial: false, capacitorBle: false });
   let verboseInfoShow = $state<boolean>(false);
   let pickerShow = $state<boolean>(false);
+  /** True when the app opened the picker on start, not the user. */
+  let pickerQuiet = $state<boolean>(false);
+
+  /** How long the app looks for the remembered printer on start. */
+  const AUTO_CONNECT_SEARCH_MS = 10_000;
 
   const percentage = (cur?: number, total?: number) => {
     if (cur === undefined || total === undefined) {
@@ -47,6 +53,7 @@
 
     // The system picker in the app lists every nearby device; ours shows printers only.
     if ($printerClient instanceof NiimbotCapacitorBleClient && $automation?.autoConnectDeviceId === undefined) {
+      pickerQuiet = false;
       pickerShow = true;
       return;
     }
@@ -73,6 +80,8 @@
       await client.connect({ deviceId });
       // Connecting by id reports the id as the name; show the printer's name instead.
       connectedPrinterName.set(name);
+      const autoConnect = $lastPrinter?.deviceId === deviceId ? $lastPrinter.autoConnect : false;
+      lastPrinter.set({ deviceId, name, autoConnect });
     } catch (e) {
       connectionState.set("disconnected");
       Toasts.error(e);
@@ -93,6 +102,10 @@
 
   const reset = async () => {
     await $printerClient.protocol.printerReset();
+  };
+
+  const toggleAutoConnect = () => {
+    if ($lastPrinter) lastPrinter.set({ ...$lastPrinter, autoConnect: !$lastPrinter.autoConnect });
   };
 
   const switchConnectionType = (c: ConnectionType) => {
@@ -125,6 +138,11 @@
 
     if ($automation !== undefined && $automation.autoConnect && connectionType === "capacitor-ble") {
       onConnectClicked();
+    } else if (connectionType === "capacitor-ble" && $lastPrinter?.autoConnect) {
+      // Look for the remembered printer for a short while; close quietly if it is not around.
+      initClient(connectionType);
+      pickerQuiet = true;
+      pickerShow = true;
     }
   });
 </script>
@@ -240,6 +258,18 @@
           >{$tr("connector.settings.connection_sound")}</label>
       </div>
 
+      {#if connectionType === "capacitor-ble" && $lastPrinter}
+        <div class="text-secondary mt-2">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            id="auto-connect-switch"
+            checked={!!$lastPrinter.autoConnect}
+            onchange={toggleAutoConnect} />
+          <label class="form-check-label" for="auto-connect-switch">{$tr("connector.settings.auto_connect")}</label>
+        </div>
+      {/if}
 
       <button class="btn btn-sm btn-outline-secondary w-100 mt-3" onclick={() => (verboseInfoShow = true)}
         >{$tr("connector.open_verbose")}</button>
@@ -262,7 +292,8 @@
         type="button"
         data-bs-toggle="collapse"
         data-bs-target="#tests">
-        {$tr("debug.title")} <MdIcon icon="expand_more" />
+        {$tr("debug.title")}
+        <MdIcon icon="expand_more" />
       </button>
 
       <div class="collapse" id="tests">
@@ -340,7 +371,11 @@
 </div>
 
 {#if pickerShow}
-  <PrinterPicker bind:show={pickerShow} onPick={onPrinterPicked} />
+  <PrinterPicker
+    bind:show={pickerShow}
+    onPick={onPrinterPicked}
+    preferred={$lastPrinter ?? undefined}
+    quietTimeoutMs={pickerQuiet ? AUTO_CONNECT_SEARCH_MS : undefined} />
 {/if}
 
 <style>

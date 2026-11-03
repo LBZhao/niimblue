@@ -11,6 +11,10 @@
     show: boolean;
     /** Called with the chosen device. The picker closes itself. */
     onPick: (deviceId: string, name: string) => void;
+    /** A remembered printer: connect as soon as it shows up. */
+    preferred?: { deviceId: string; name: string };
+    /** Opened by the app on start: give up quietly if the preferred printer does not show up. */
+    quietTimeoutMs?: number;
   }
 
   type Found = { deviceId: string; name?: string; rssi: number };
@@ -20,7 +24,7 @@
   /** If no printer was found by then, wait this long after the first one appears. */
   const AUTO_PICK_SETTLE_MS = 1500;
 
-  let { show = $bindable(), onPick }: Props = $props();
+  let { show = $bindable(), onPick, preferred, quietTimeoutMs }: Props = $props();
 
   let found = $state<Record<string, Found>>({});
   let showAll = $state<boolean>(false);
@@ -29,6 +33,7 @@
   let picked = false;
   let waitingForFirstPrinter = false;
   let autoTimer: ReturnType<typeof setTimeout> | undefined;
+  let quietTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Nearest first. Printers only, unless "Show all devices" is on. */
   let visible = $derived.by<Found[]>(() =>
@@ -42,6 +47,10 @@
   const onResult = (r: ScanResult) => {
     const name = r.device.name ?? r.localName;
     found[r.device.deviceId] = { deviceId: r.device.deviceId, name, rssi: r.rssi ?? -127 };
+    if (r.device.deviceId === preferred?.deviceId) {
+      pick(found[r.device.deviceId]);
+      return;
+    }
     if (waitingForFirstPrinter && isLikelyPrinterName(name)) {
       waitingForFirstPrinter = false;
       autoTimer = setTimeout(autoPick, AUTO_PICK_SETTLE_MS);
@@ -70,6 +79,7 @@
     if (picked) return;
     picked = true;
     clearTimeout(autoTimer);
+    clearTimeout(quietTimer);
     stopScan();
     modalRef.hide();
     onPick(d.deviceId, d.name ?? d.deviceId);
@@ -85,6 +95,14 @@
       await BleClient.requestLEScan({ allowDuplicates: false }, onResult);
       scanning = true;
       autoTimer = setTimeout(autoPick, AUTO_PICK_DELAY_MS);
+      if (quietTimeoutMs !== undefined && preferred) {
+        quietTimer = setTimeout(() => {
+          if (picked) return;
+          Toasts.message($tr("connector.pick.not_found").replace("{name}", preferred.name));
+          stopScan();
+          modalRef.hide();
+        }, quietTimeoutMs);
+      }
     } catch (e) {
       Toasts.error(e);
       modalRef.hide();
@@ -93,12 +111,19 @@
 
   onDestroy(() => {
     clearTimeout(autoTimer);
+    clearTimeout(quietTimer);
     stopScan();
   });
 </script>
 
 <AppModal bind:this={modalRef} title={$tr("connector.pick.title")} bind:show onClose={stopScan}>
   <div class="d-flex flex-column gap-2">
+    {#if preferred && scanning}
+      <div class="text-secondary">
+        <span class="spinner-border spinner-border-sm me-2"></span>
+        {$tr("connector.pick.looking").replace("{name}", preferred.name)}
+      </div>
+    {/if}
     {#each visible as d (d.deviceId)}
       <button class="btn btn-outline-secondary d-flex align-items-center gap-2 text-start" onclick={() => pick(d)}>
         <MdIcon icon="print" />
