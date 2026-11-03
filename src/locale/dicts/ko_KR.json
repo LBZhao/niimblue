@@ -173,6 +173,7 @@
     "preview.offset.inner": "내부",
     "preview.offset.outer": "외부",
     "preview.offset": "오프셋",
+    "preview.printer_dots": "프린터 도트",
     "preview.postprocess.atkinson": "디더링 (앳킨슨)",
     "preview.postprocess.threshold": "임계값",
     "preview.postprocess": "후처리",

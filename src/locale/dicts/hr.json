@@ -166,6 +166,7 @@
     "preview.offset.inner": "Unutarnji",
     "preview.offset.outer": "Vanjski",
     "preview.offset": "Ofset",
+    "preview.printer_dots": "Točke pisača",
     "preview.postprocess.atkinson": "Dither (Atkinson)",
     "preview.postprocess.threshold": "Prag",
     "preview.postprocess": "Naknadna obrada",

@@ -117,5 +117,6 @@
     "params.saved_labels.saved_to_phone": "Sparad på telefonen:",
     "params.saved_labels.phone_copy_note": "Vid sparande skrivs också en kopia till Documents/NiimBlue på den här telefonen.",
     "params.text.label_fonts": "Etikettypsnitt",
-    "debug.packet_interval.help": "Åsidosätt paketintervallet. En uppdatering av sidan krävs. Något kan gå sönder om värdet är för lågt."
+    "debug.packet_interval.help": "Åsidosätt paketintervallet. En uppdatering av sidan krävs. Något kan gå sönder om värdet är för lågt.",
+    "preview.printer_dots": "Skrivarpunkter"
 }

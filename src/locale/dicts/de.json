@@ -139,6 +139,7 @@
     "preview.offset.inner": "Innen",
     "preview.offset.outer": "Außen",
     "preview.offset": "Versatz",
+    "preview.printer_dots": "Druckerpunkte",
     "preview.postprocess.atkinson": "Rastern (Atkinson)",
     "preview.postprocess.threshold": "Schwellenwert",
     "preview.postprocess": "Nachbearbeitung",

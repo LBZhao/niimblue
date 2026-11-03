@@ -61,7 +61,12 @@
   let strengthValue = $state<number>(1);
   let serpentineValue = $state<boolean>(true);
   let originalImage: ImageData;
-  let previewContext: CanvasRenderingContext2D;
+  /** The label rendered at PREVIEW_SCALE times printer resolution, for a smooth preview. */
+  let originalImageHi: ImageData | undefined;
+  /** What the dialog shows. previewCanvas holds the exact printer image and stays hidden. */
+  let displayCanvas: HTMLCanvasElement;
+  /** Show the exact printer dots instead of the smooth preview. */
+  let showPrinterDots = $state<boolean>(false);
   let printTaskName = $state<PrintTaskName>("B1");
   let labelType = $state<LabelType>(LabelType.WithGaps);
   // eslint-disable-next-line no-undef
@@ -81,6 +86,9 @@
   let effectivePrintDirection = $derived(
     printDirectionForPrinter(labelProps.printDirection, $printerMeta, $connectedPrinterName),
   );
+
+  /** Smooth preview resolution: about the screen's own sharpness, 2 to 4 times printer resolution. */
+  const PREVIEW_SCALE = Math.min(4, Math.max(2, Math.ceil(window.devicePixelRatio || 1)));
 
   /** Pixels to millimetres for the hint under the move fields. */
   const offsetMm = (px: number): string => ((Number(px) || 0) / (labelProps.dpmm ?? 8)).toFixed(1);
@@ -197,8 +205,12 @@
     }
   };
 
-  const updatePreview = () => {
-    let iData: ImageData = effects.copyImageData(originalImage);
+  /**
+   * Post-process `source` and draw it into `target` with the move applied. `scale` is the source's
+   * resolution in printer pixels: 1 for the printed image, PREVIEW_SCALE for the smooth preview.
+   */
+  const renderProcessed = (source: ImageData, target: HTMLCanvasElement, scale: number) => {
+    let iData: ImageData = effects.copyImageData(source);
 
     const ditherOpts = {
       threshold: thresholdValue,
@@ -228,20 +240,38 @@
       iData = effects.mirror(iData);
     }
 
-    offsetWarning = "";
-
     // The printer centres the image across its printhead and starts at the label's leading edge.
     // Across the head: pad both sides, so the centred image moves by exactly the offset and nothing is cut.
     // Along the feed: keep the length and move inside it, so nothing prints past the label.
-    const moveX = Math.round(Number(offset.x) || 0);
-    const moveY = Math.round(Number(offset.y) || 0);
+    const moveX = Math.round(Number(offset.x) || 0) * scale;
+    const moveY = Math.round(Number(offset.y) || 0) * scale;
     const acrossIsX = effectivePrintDirection === "top";
     const pad = Math.abs(acrossIsX ? moveX : moveY);
-    previewCanvas.width = originalImage.width + (acrossIsX ? 2 * pad : 0);
-    previewCanvas.height = originalImage.height + (acrossIsX ? 0 : 2 * pad);
-    previewContext.fillStyle = "white";
-    previewContext.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-    previewContext.putImageData(iData, acrossIsX ? pad + moveX : moveX, acrossIsX ? moveY : pad + moveY);
+    target.width = source.width + (acrossIsX ? 2 * pad : 0);
+    target.height = source.height + (acrossIsX ? 0 : 2 * pad);
+    const ctx = target.getContext("2d")!;
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, target.width, target.height);
+    ctx.putImageData(iData, acrossIsX ? pad + moveX : moveX, acrossIsX ? moveY : pad + moveY);
+  };
+
+  const updatePreview = () => {
+    offsetWarning = "";
+
+    // The image that gets printed.
+    renderProcessed(originalImage, previewCanvas, 1);
+
+    // The image on screen: smooth, or the exact printer dots. Same on-screen size either way.
+    if (displayCanvas) {
+      if (showPrinterDots || !originalImageHi) {
+        displayCanvas.width = previewCanvas.width;
+        displayCanvas.height = previewCanvas.height;
+        displayCanvas.getContext("2d")!.drawImage(previewCanvas, 0, 0);
+      } else {
+        renderProcessed(originalImageHi, displayCanvas, PREVIEW_SCALE);
+      }
+      displayCanvas.style.width = `${previewCanvas.width}px`;
+    }
 
     if ($printerMeta !== undefined) {
       const headSize = effectivePrintDirection == "left" ? previewCanvas.height : previewCanvas.width;
@@ -357,10 +387,10 @@
 
     const preRenderedCanvas = fabricTempCanvas.toCanvasElement();
     const ctx = preRenderedCanvas.getContext("2d")!;
-    previewCanvas.width = preRenderedCanvas.width;
-    previewCanvas.height = preRenderedCanvas.height;
-    previewContext = previewCanvas.getContext("2d")!;
     originalImage = ctx.getImageData(0, 0, preRenderedCanvas.width, preRenderedCanvas.height);
+
+    const hiCanvas = fabricTempCanvas.toCanvasElement(PREVIEW_SCALE);
+    originalImageHi = hiCanvas.getContext("2d")!.getImageData(0, 0, hiCanvas.width, hiCanvas.height);
 
     updatePreview();
 
@@ -433,7 +463,9 @@
 
     <div class="feed-stage feed-{effectivePrintDirection}">
       <FeedChip direction={effectivePrintDirection} />
-      <canvas bind:this={previewCanvas}></canvas>
+      <!-- The exact image that gets printed; the dialog shows displayCanvas instead. -->
+      <canvas class="d-none" bind:this={previewCanvas}></canvas>
+      <canvas class="preview-display" class:printer-dots={showPrinterDots} bind:this={displayCanvas}></canvas>
     </div>
 
     {#if pagesTotal > 1}
@@ -441,6 +473,19 @@
         <MdIcon icon="chevron_right" />
       </button>
     {/if}
+  </div>
+
+  <div class="d-flex justify-content-end mt-1">
+    <div class="form-check form-switch m-0 small text-secondary">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        role="switch"
+        id="preview-printer-dots"
+        bind:checked={showPrinterDots}
+        onchange={updatePreview} />
+      <label class="form-check-label" for="preview-printer-dots">{$tr("preview.printer_dots")}</label>
+    </div>
   </div>
 
   <div class="text-center">
@@ -725,9 +770,12 @@
 
 <style>
   canvas {
-    image-rendering: pixelated;
     border: 1px solid #6d6d6d;
     max-width: 100%;
+  }
+  /* Smooth preview; the exact printer image shows its dots. */
+  canvas.preview-display.printer-dots {
+    image-rendering: pixelated;
   }
   .progress-bar {
     transition: none;

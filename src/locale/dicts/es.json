@@ -173,6 +173,7 @@
     "preview.offset.inner": "Interno",
     "preview.offset.outer": "Externo",
     "preview.offset": "Offset",
+    "preview.printer_dots": "Puntos de impresión",
     "preview.postprocess.atkinson": "Tramado (Atkinson)",
     "preview.postprocess.threshold": "Límite",
     "preview.postprocess": "Postprocesado",

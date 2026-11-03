@@ -172,6 +172,7 @@
     "preview.offset.inner": "Interno",
     "preview.offset.outer": "Externo",
     "preview.offset": "Deslocamento",
+    "preview.printer_dots": "Pontos de impressão",
     "preview.postprocess.atkinson": "Dither (Atkinson)",
     "preview.postprocess.threshold": "Limite",
     "preview.postprocess": "Pós-processamento",

@@ -152,6 +152,7 @@
     "preview.offset.inner": "Intérieur",
     "preview.offset.outer": "Extérieur",
     "preview.offset": "Décalage",
+    "preview.printer_dots": "Points d'impression",
     "preview.postprocess.atkinson": "Tramage (Atkinson)",
     "preview.postprocess.threshold": "Seuillage",
     "preview.postprocess": "Post-traitement",

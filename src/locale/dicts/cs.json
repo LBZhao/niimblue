@@ -144,6 +144,7 @@
     "preview.offset.inner": "Vnitřní",
     "preview.offset.outer": "Vnější",
     "preview.offset": "Offset",
+    "preview.printer_dots": "Body tiskárny",
     "preview.postprocess.atkinson": "Prokládání (Atkinson)",
     "preview.postprocess.threshold": "Prahování",
     "preview.postprocess": "Post-process",

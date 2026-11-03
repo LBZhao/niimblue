@@ -173,6 +173,7 @@
     "preview.offset.inner": "İç",
     "preview.offset.outer": "Dış",
     "preview.offset": "Ofset",
+    "preview.printer_dots": "Yazıcı noktaları",
     "preview.postprocess.atkinson": "Dither (Atkinson)",
     "preview.postprocess.threshold": "Eşik",
     "preview.postprocess": "Son işlem",

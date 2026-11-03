@@ -192,5 +192,6 @@
     "params.aruco.marker_id": "معرف العلامة",
     "params.aruco.dict": "قاموس",
     "params.generic.keepAspectRatio": "حافظ على نسبة العرض إلى الارتفاع",
-    "debug.packet_interval.help": "قم بتجاوز فاصل حزم البيانات. يلزم إعادة تحميل الصفحة. قد يحدث خلل ما إذا كانت القيمة منخفضة جدًا."
+    "debug.packet_interval.help": "قم بتجاوز فاصل حزم البيانات. يلزم إعادة تحميل الصفحة. قد يحدث خلل ما إذا كانت القيمة منخفضة جدًا.",
+    "preview.printer_dots": "نقاط الطابعة"
 }

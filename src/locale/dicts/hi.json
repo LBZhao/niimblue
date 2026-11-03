@@ -180,6 +180,7 @@
     "preview.offset.inner": "भीतरी",
     "preview.offset.outer": "बाहरी",
     "preview.offset": "ऑफसेट",
+    "preview.printer_dots": "प्रिंटर डॉट्स",
     "preview.postprocess.atkinson": "डिथर (Atkinson)",
     "preview.postprocess.bayer": "डिथर (Bayer)",
     "preview.postprocess.threshold": "थ्रेशहोल्ड",

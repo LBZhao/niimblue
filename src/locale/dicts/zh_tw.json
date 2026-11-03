@@ -173,6 +173,7 @@
     "preview.offset.inner": "內部",
     "preview.offset.outer": "外部",
     "preview.offset": "偏移",
+    "preview.printer_dots": "列印點陣",
     "preview.postprocess.atkinson": "網點化（Atkinson）",
     "preview.postprocess.threshold": "閾值",
     "preview.postprocess": "後處理",

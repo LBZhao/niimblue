@@ -139,6 +139,7 @@
     "preview.offset.inner": "内偏移",
     "preview.offset.outer": "外偏移",
     "preview.offset": "偏移",
+    "preview.printer_dots": "打印点阵",
     "preview.postprocess.atkinson": "抖动（Atkinson）",
     "preview.postprocess.threshold": "阈值化",
     "preview.postprocess": "前置处理器",

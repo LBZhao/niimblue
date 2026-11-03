@@ -172,6 +172,7 @@
     "preview.offset.inner": "Inner",
     "preview.offset.outer": "Outer",
     "preview.offset": "Offset",
+    "preview.printer_dots": "Nyomtatópontok",
     "preview.postprocess.atkinson": "Dither (Atkinson)",
     "preview.postprocess.threshold": "Threshold",
     "preview.postprocess": "Post-process",

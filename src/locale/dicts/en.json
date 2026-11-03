@@ -225,6 +225,7 @@
     "preview.offset.inner": "Inner",
     "preview.offset.outer": "Outer",
     "preview.offset": "Offset",
+    "preview.printer_dots": "Printer dots",
     "preview.postprocess.atkinson": "Dither (Atkinson)",
     "preview.postprocess.bayer": "Dither (Bayer)",
     "preview.postprocess.floyd_steinberg": "Dither (Floyd-Steinberg)",

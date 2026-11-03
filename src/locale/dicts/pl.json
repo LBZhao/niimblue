@@ -144,6 +144,7 @@
     "preview.offset.inner": "Wewnętrzny",
     "preview.offset.outer": "Zewnętrzny",
     "preview.offset": "Przesunięcie",
+    "preview.printer_dots": "Punkty drukarki",
     "preview.postprocess.atkinson": "Roztrząsanie (Atkinson)",
     "preview.postprocess.threshold": "Próg",
     "preview.postprocess": "Postproces",

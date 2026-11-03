@@ -139,6 +139,7 @@
     "preview.offset.inner": "Interno",
     "preview.offset.outer": "Esterno",
     "preview.offset": "Offset",
+    "preview.printer_dots": "Punti di stampa",
     "preview.postprocess.atkinson": "Dither (Atkinson)",
     "preview.postprocess.threshold": "Soglia",
     "preview.postprocess": "Post-processo",

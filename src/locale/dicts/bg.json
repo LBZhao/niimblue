@@ -195,6 +195,7 @@
     "preview.offset.inner": "Вътрешна",
     "preview.offset.outer": "Външни",
     "preview.offset": "Отместване",
+    "preview.printer_dots": "Точки на принтера",
     "preview.postprocess.atkinson": "Дитер (Аткинсън)",
     "preview.postprocess.bayer": "Dither (Bayer)",
     "preview.postprocess.threshold": "Праг",
