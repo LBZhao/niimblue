@@ -159,7 +159,7 @@ const packWords = (
 
 /**
  * Wrap on spaces so every line stays inside the inscribed circle.
- * `limitBottom` is the y the text must stay above (the date).
+ * `limitBottom` is the y the text must stay above (the date), `limitTop` the y it must stay below.
  * `oneWordPerLine` stacks the words instead of packing them.
  */
 export const placeCircleText = (
@@ -168,12 +168,13 @@ export const placeCircleText = (
   piece: TextArea,
   limitBottom: number,
   oneWordPerLine = false,
+  limitTop = -Infinity,
 ): void => {
   const radius = Math.min(piece.width, piece.height) / 2;
   const cx = piece.x + piece.width / 2;
   const cy = piece.y + piece.height / 2;
   const textRadius = Math.max(1, radius - 1);
-  const top = cy - textRadius;
+  const top = Math.max(cy - textRadius, limitTop);
   const bottom = Math.min(cy + textRadius, limitBottom);
   const span = Math.max(1, bottom - top);
   const words = text.trim().split(/\s+/).filter((word) => word.length > 0);

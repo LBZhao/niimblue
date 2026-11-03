@@ -64,6 +64,8 @@ export class CustomCanvas extends fabric.Canvas {
   /** Backing paper around the pieces in thumbnails. Darker than GRAY so white pieces read clearly. */
   private readonly LINER = "#9E9E9E";
   private readonly MIRROR_GHOST_COLOR = "rgba(0, 0, 0, 0.3)";
+  /** Blank rows kept above the fitted text and below the date, so printing never clips them. */
+  private readonly EDGE_MARGIN = 3;
   /** Gap shown between split pieces in the editor. */
   private readonly EDITOR_GAP_MM = 1;
   /** Used for labels saved before dpmm was stored. */
@@ -1098,7 +1100,7 @@ export class CustomCanvas extends fabric.Canvas {
     const bounds = this.getLabelBounds();
     // Print and thumbnails must use the real gap. The editor frame has it removed.
     const display = physical ? this.getTwoPieceLayout() : this.displayLayout();
-    const band = dateHeight + 2;
+    const band = dateHeight + this.EDGE_MARGIN;
     if (!display) {
       return {
         primary: {
@@ -1116,7 +1118,7 @@ export class CustomCanvas extends fabric.Canvas {
           offsetX: 0,
           offsetY: 0,
           maxWidth: Math.max(1, bounds.width),
-          maxHeight: Math.max(1, bounds.height - 2),
+          maxHeight: Math.max(1, bounds.height - 2 * this.EDGE_MARGIN),
           labelHeight: bounds.height,
         },
       };
@@ -1135,7 +1137,7 @@ export class CustomCanvas extends fabric.Canvas {
         offsetX: 0,
         offsetY: 0,
         maxWidth: Math.max(1, topOrLeft.width),
-        maxHeight: Math.max(1, topOrLeft.height - 2),
+        maxHeight: Math.max(1, topOrLeft.height - 2 * this.EDGE_MARGIN),
         labelHeight: bounds.height,
       },
     };
@@ -1161,7 +1163,7 @@ export class CustomCanvas extends fabric.Canvas {
       hoverCursor: "default",
     });
     date.setPositionByOrigin(
-      new fabric.Point(frames.date.visualX, frames.date.visualBottom - 2),
+      new fabric.Point(frames.date.visualX, frames.date.visualBottom - this.EDGE_MARGIN),
       "center",
       "bottom",
     );
@@ -1176,12 +1178,14 @@ export class CustomCanvas extends fabric.Canvas {
   }
 
   private areaAboveDate(piece: SplitPiece, stopAtDate: boolean, textLimitY: number): TextArea {
-    const bottom = stopAtDate ? Math.min(piece.y + piece.height, textLimitY) : piece.y + piece.height;
+    const top = piece.y + this.EDGE_MARGIN;
+    const pieceBottom = piece.y + piece.height - this.EDGE_MARGIN;
+    const bottom = stopAtDate ? Math.min(pieceBottom, textLimitY) : pieceBottom;
     return {
       x: piece.x,
-      y: piece.y,
+      y: top,
       width: Math.max(1, piece.width),
-      height: Math.max(1, bottom - piece.y),
+      height: Math.max(1, bottom - top),
     };
   }
 
@@ -1213,7 +1217,7 @@ export class CustomCanvas extends fabric.Canvas {
     box.labelRole = "secondary";
     const pieceBottom = frames.secondary.y + frames.secondary.height;
     if (frames.secondary.shape === "circle") {
-      placeCircleText(box, source, frames.secondary, pieceBottom, stacked);
+      placeCircleText(box, source, frames.secondary, pieceBottom - this.EDGE_MARGIN, stacked, frames.secondary.y + this.EDGE_MARGIN);
     } else {
       placeFittedText(box, source, this.areaAboveDate(frames.secondary, false, frames.textLimitY));
     }
