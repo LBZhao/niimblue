@@ -31,7 +31,8 @@ export default defineConfig(
       },
     },
     {
-      ignores: ["dist/", "capacitor/"],
+      // Built app files (www/, Android/iOS projects) and test output are not source.
+      ignores: ["dist/", "standalone-apps/", ".vitest-attachments/", "**/__screenshots__/"],
     },
     {
       rules: {

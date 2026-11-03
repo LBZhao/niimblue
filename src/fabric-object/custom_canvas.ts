@@ -457,7 +457,7 @@ export class CustomCanvas extends fabric.Canvas {
     object.setPositionByOrigin(new fabric.Point((bb.startX + endX) / 2, (bb.startY + endY) / 2), "center", "center");
     object.setCoords();
     this.syncObjectGap(object);
-    this.renderOnAddRemove && this.requestRenderAll();
+    if (this.renderOnAddRemove) this.requestRenderAll();
   }
 
   /**
