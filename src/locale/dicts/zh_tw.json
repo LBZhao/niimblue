@@ -33,6 +33,7 @@
     "editor.preview": "預覽",
     "editor.print_starts": "從此處開始列印",
     "editor.recent_prints": "最近列印",
+    "editor.recent_prints.trimmed": "歷史記錄儲存空間已滿，已刪除最舊的 {n} 個標籤。",
     "editor.print": "列印",
     "editor.redo": "重做",
     "editor.undo": "復原",

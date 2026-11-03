@@ -33,6 +33,7 @@
     "editor.preview": "عرض",
     "editor.print_starts": "تبدأ الطباعة من هنا",
     "editor.recent_prints": "المطبوعة مؤخرًا",
+    "editor.recent_prints.trimmed": "مساحة السجل ممتلئة، لذا أُزيلت أقدم {n} من الملصقات.",
     "editor.print": "طباعة",
     "editor.redo": "إعادة",
     "editor.undo": "تراجع",

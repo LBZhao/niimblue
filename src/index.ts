@@ -7,8 +7,10 @@ import App from "$/App.svelte";
 import { mount } from "svelte";
 import { configureFabric } from "$/defaults";
 import { FileUtils } from "$/utils/file_utils";
+import { tidyRecentPrints } from "$/utils/recent_prints";
 
 configureFabric();
+tidyRecentPrints();
 FileUtils.loadBundledFonts().then(() => FileUtils.refreshStoredThumbnails());
 
 const app = mount(App, {

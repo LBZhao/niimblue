@@ -32,6 +32,7 @@
     "editor.preview": "Aperçu",
     "editor.print_starts": "L'impression commence ici",
     "editor.recent_prints": "Imprimées récemment",
+    "editor.recent_prints.trimmed": "L'historique est plein : les {n} étiquettes les plus anciennes ont été supprimées.",
     "editor.print": "Imprimer",
     "editor.redo": "Rétablir",
     "editor.undo": "Annuler",

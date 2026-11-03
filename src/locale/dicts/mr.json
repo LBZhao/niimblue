@@ -40,6 +40,7 @@
     "editor.preview": "पूर्वावलोकन",
     "editor.print_starts": "छपाई इथून सुरू होते",
     "editor.recent_prints": "अलीकडे प्रिंट केलेले",
+    "editor.recent_prints.trimmed": "इतिहासाची जागा भरली आहे, म्हणून सर्वात जुनी {n} लेबले काढली.",
     "editor.print": "प्रिंट करा",
     "editor.redo": "पुन्हा करा",
     "editor.undo": "पूर्ववत करा",

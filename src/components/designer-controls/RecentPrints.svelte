@@ -17,7 +17,7 @@
   <div class="recent-prints">
     <div class="recent-title text-secondary small d-flex align-items-center gap-1 mb-1">
       <MdIcon icon="history" />
-      {$tr("editor.recent_prints")}
+      {$tr("editor.recent_prints")} ({$recentPrints.length})
     </div>
     <div class="recent-list d-flex flex-column gap-1">
       {#each $recentPrints as item, idx (idx)}

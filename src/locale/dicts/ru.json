@@ -62,6 +62,7 @@
     "editor.preview": "Предпросмотр",
     "editor.print_starts": "Печать начинается здесь",
     "editor.recent_prints": "Недавно напечатанные",
+    "editor.recent_prints.trimmed": "Хранилище истории заполнено, поэтому удалены самые старые этикетки: {n}.",
     "editor.print": "Печать",
     "editor.redo": "Повторить",
     "editor.undo": "Отменить",

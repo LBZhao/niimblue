@@ -30,6 +30,7 @@
     "editor.preview": "Vorschau",
     "editor.print_starts": "Druck beginnt hier",
     "editor.recent_prints": "Zuletzt gedruckt",
+    "editor.recent_prints.trimmed": "Der Verlaufsspeicher ist voll, daher wurden die {n} ältesten Etiketten entfernt.",
     "editor.print": "Drucken",
     "editor.redo": "Wiederholen",
     "editor.undo": "Rückgängig machen",

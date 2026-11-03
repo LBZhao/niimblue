@@ -32,6 +32,7 @@
     "editor.preview": "Pré-visualizar",
     "editor.print_starts": "A impressão começa aqui",
     "editor.recent_prints": "Impressas recentemente",
+    "editor.recent_prints.trimmed": "O histórico está cheio, então as {n} etiquetas mais antigas foram removidas.",
     "editor.print": "Imprimir",
     "editor.redo": "Refazer",
     "editor.undo": "Desfazer",

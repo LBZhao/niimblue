@@ -210,7 +210,10 @@
 
   const onPrinted = () => {
     try {
-      rememberPrintedLabel(FileUtils.makeExportedLabel(fabricCanvas!, labelProps, csvEnabled, RECENT_THUMBNAIL_HEIGHT));
+      const dropped = rememberPrintedLabel(
+        FileUtils.makeExportedLabel(fabricCanvas!, labelProps, csvEnabled, RECENT_THUMBNAIL_HEIGHT),
+      );
+      if (dropped > 0) Toasts.message($tr("editor.recent_prints.trimmed").replace("{n}", String(dropped)));
     } catch (e) {
       if (e instanceof z.ZodError) Toasts.zodErrors(e, "Recent prints save error:");
       else Toasts.error(e);

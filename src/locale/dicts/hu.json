@@ -33,6 +33,7 @@
     "editor.preview": "Előnézet",
     "editor.print_starts": "A nyomtatás itt kezdődik",
     "editor.recent_prints": "Legutóbb nyomtatott",
+    "editor.recent_prints.trimmed": "Az előzmények tárhelye megtelt, ezért a {n} legrégebbi címke törlődött.",
     "editor.print": "Nyomtatás",
     "editor.redo": "Ismét",
     "editor.undo": "Visszavonás",

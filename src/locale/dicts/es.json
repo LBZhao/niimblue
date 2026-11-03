@@ -34,6 +34,7 @@
     "editor.preview": "Previsualizar",
     "editor.print_starts": "La impresión empieza aquí",
     "editor.recent_prints": "Impresas recientemente",
+    "editor.recent_prints.trimmed": "El almacenamiento del historial está lleno, así que se quitaron las {n} etiquetas más antiguas.",
     "editor.print": "Imprimir",
     "editor.redo": "Rehacer",
     "editor.undo": "Deshacer",

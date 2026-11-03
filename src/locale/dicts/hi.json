@@ -40,6 +40,7 @@
     "editor.preview": "पूर्वावलोकन",
     "editor.print_starts": "प्रिंट यहाँ से शुरू होता है",
     "editor.recent_prints": "हाल ही में प्रिंट किए गए",
+    "editor.recent_prints.trimmed": "इतिहास का संग्रह भर गया है, इसलिए सबसे पुराने {n} लेबल हटाए गए।",
     "editor.print": "प्रिंट करें",
     "editor.redo": "फिर से करें",
     "editor.undo": "पूर्ववत करें",

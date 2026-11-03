@@ -30,6 +30,7 @@
     "editor.preview": "Podgląd",
     "editor.print_starts": "Druk zaczyna się tutaj",
     "editor.recent_prints": "Ostatnio drukowane",
+    "editor.recent_prints.trimmed": "Pamięć historii jest pełna, więc usunięto najstarsze etykiety: {n}.",
     "editor.print": "Drukuj",
     "editor.redo": "Ponów",
     "editor.undo": "Cofnij",

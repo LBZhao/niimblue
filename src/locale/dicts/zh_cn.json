@@ -30,6 +30,7 @@
     "editor.preview": "预览",
     "editor.print_starts": "从此处开始打印",
     "editor.recent_prints": "最近打印",
+    "editor.recent_prints.trimmed": "历史记录存储已满，已删除最早的 {n} 个标签。",
     "editor.print": "打印",
     "editor.redo": "重做",
     "editor.undo": "撤消",

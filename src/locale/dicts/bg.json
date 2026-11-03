@@ -43,6 +43,7 @@
     "editor.preview": "Преглед",
     "editor.print_starts": "Печатът започва оттук",
     "editor.recent_prints": "Наскоро отпечатани",
+    "editor.recent_prints.trimmed": "Паметта за историята е пълна, затова бяха премахнати {n} най-стари етикета.",
     "editor.print": "Печат",
     "editor.redo": "Възстановяване",
     "editor.undo": "Отмяна",

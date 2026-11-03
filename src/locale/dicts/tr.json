@@ -33,6 +33,7 @@
     "editor.preview": "Önizleme",
     "editor.print_starts": "Baskı buradan başlar",
     "editor.recent_prints": "Son yazdırılanlar",
+    "editor.recent_prints.trimmed": "Geçmiş depolama alanı dolu, bu yüzden en eski {n} etiket kaldırıldı.",
     "editor.print": "Yazdır",
     "editor.redo": "Yinele",
     "editor.undo": "Geri al",

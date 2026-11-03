@@ -44,6 +44,7 @@
     "editor.preview": "Förhandsgranska",
     "editor.print_starts": "Utskriften börjar här",
     "editor.recent_prints": "Senast utskrivna",
+    "editor.recent_prints.trimmed": "Historiken är full, så de {n} äldsta etiketterna togs bort.",
     "editor.print": "Skriv ut",
     "editor.redo": "Göra om",
     "editor.undo": "Ångra",

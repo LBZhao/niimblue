@@ -30,6 +30,7 @@
     "editor.preview": "Náhled",
     "editor.print_starts": "Tisk začíná zde",
     "editor.recent_prints": "Nedávno vytištěné",
+    "editor.recent_prints.trimmed": "Úložiště historie je plné, proto bylo odebráno {n} nejstarších štítků.",
     "editor.print": "Tisk",
     "editor.redo": "Zpět",
     "editor.undo": "Znovu",

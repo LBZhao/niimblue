@@ -30,6 +30,7 @@
     "editor.preview": "Anteprima",
     "editor.print_starts": "La stampa inizia qui",
     "editor.recent_prints": "Stampate di recente",
+    "editor.recent_prints.trimmed": "La memoria della cronologia è piena: sono state rimosse le {n} etichette più vecchie.",
     "editor.print": "Stampa",
     "editor.redo": "Ripristina",
     "editor.undo": "Annulla",

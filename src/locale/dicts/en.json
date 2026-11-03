@@ -65,6 +65,7 @@
     "editor.preview": "Preview",
     "editor.print_starts": "Print starts here",
     "editor.recent_prints": "Recently printed",
+    "editor.recent_prints.trimmed": "History storage is full, so the {n} oldest labels were removed.",
     "editor.print": "Print",
     "editor.redo": "Redo",
     "editor.undo": "Undo",
