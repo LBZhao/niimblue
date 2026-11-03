@@ -114,7 +114,7 @@
     "params.saved_labels.download": "다운로드",
     "params.saved_labels.save_to_phone": "휴대폰에 저장",
     "params.saved_labels.saved_to_phone": "휴대폰에 저장됨:",
-    "params.saved_labels.phone_copy_note": "저장하면 이 휴대폰의 Documents/NiimBlue에도 사본이 저장됩니다.",
+    "params.saved_labels.phone_copy_note": "저장하면 이 휴대폰의 Documents/NiimBlue/Saved에도 사본이 저장됩니다.",
     "params.saved_labels.label_title.placeholder": "(선택 사항)",
     "params.saved_labels.label_title": "제목",
     "params.saved_labels.load.browser": "불러오기",

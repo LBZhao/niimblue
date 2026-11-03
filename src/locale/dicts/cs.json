@@ -97,7 +97,7 @@
     "params.saved_labels.download": "Stáhnout",
     "params.saved_labels.save_to_phone": "Uložit do telefonu",
     "params.saved_labels.saved_to_phone": "Uloženo do telefonu:",
-    "params.saved_labels.phone_copy_note": "Při ukládání se zapíše i kopie do Documents/NiimBlue v tomto telefonu.",
+    "params.saved_labels.phone_copy_note": "Při ukládání se zapíše i kopie do Documents/NiimBlue/Saved v tomto telefonu.",
     "params.saved_labels.label_title.placeholder": "(volitelný)",
     "params.saved_labels.label_title": "Titulek",
     "params.saved_labels.load.browser": "Načíst",

@@ -92,7 +92,7 @@
     "params.saved_labels.download": "下载",
     "params.saved_labels.save_to_phone": "保存到手机",
     "params.saved_labels.saved_to_phone": "已保存到手机：",
-    "params.saved_labels.phone_copy_note": "保存时也会在此手机的 Documents/NiimBlue 中写入一份副本。",
+    "params.saved_labels.phone_copy_note": "保存时也会在此手机的 Documents/NiimBlue/Saved 中写入一份副本。",
     "params.saved_labels.label_title.placeholder": "（可选）",
     "params.saved_labels.label_title": "名称",
     "params.saved_labels.load.browser": "载入到画布",

@@ -115,7 +115,7 @@
     "params.saved_labels.download": "Descargar",
     "params.saved_labels.save_to_phone": "Guardar en el teléfono",
     "params.saved_labels.saved_to_phone": "Guardado en el teléfono:",
-    "params.saved_labels.phone_copy_note": "Al guardar también se escribe una copia en Documents/NiimBlue en este teléfono.",
+    "params.saved_labels.phone_copy_note": "Al guardar también se escribe una copia en Documents/NiimBlue/Saved en este teléfono.",
     "params.saved_labels.label_title.placeholder": "(opcional)",
     "params.saved_labels.label_title": "Título",
     "params.saved_labels.load.browser": "Cargar",

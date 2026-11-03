@@ -92,7 +92,7 @@
     "params.saved_labels.download": "Herunterladen",
     "params.saved_labels.save_to_phone": "Auf dem Telefon speichern",
     "params.saved_labels.saved_to_phone": "Auf dem Telefon gespeichert:",
-    "params.saved_labels.phone_copy_note": "Beim Speichern wird auch eine Kopie unter Documents/NiimBlue auf diesem Telefon abgelegt.",
+    "params.saved_labels.phone_copy_note": "Beim Speichern wird auch eine Kopie unter Documents/NiimBlue/Saved auf diesem Telefon abgelegt.",
     "params.saved_labels.label_title.placeholder": "(optional)",
     "params.saved_labels.label_title": "Titel",
     "params.saved_labels.load.browser": "Laden",

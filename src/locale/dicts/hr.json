@@ -110,7 +110,7 @@
     "params.saved_labels.download": "Preuzmi",
     "params.saved_labels.save_to_phone": "Spremi na telefon",
     "params.saved_labels.saved_to_phone": "Spremljeno na telefon:",
-    "params.saved_labels.phone_copy_note": "Spremanje također zapisuje kopiju u Documents/NiimBlue na ovom telefonu.",
+    "params.saved_labels.phone_copy_note": "Spremanje također zapisuje kopiju u Documents/NiimBlue/Saved na ovom telefonu.",
     "params.saved_labels.label_title.placeholder": "(neobavezno)",
     "params.saved_labels.label_title": "Naslov",
     "params.saved_labels.load.browser": "Učitaj",

@@ -145,7 +145,7 @@
     "params.saved_labels.download": "Скачать",
     "params.saved_labels.save_to_phone": "Сохранить на телефон",
     "params.saved_labels.saved_to_phone": "Сохранено на телефон:",
-    "params.saved_labels.phone_copy_note": "При сохранении копия также записывается в Documents/NiimBlue на этом телефоне.",
+    "params.saved_labels.phone_copy_note": "При сохранении копия также записывается в Documents/NiimBlue/Saved на этом телефоне.",
     "params.saved_labels.label_title.placeholder": "(необязательно)",
     "params.saved_labels.label_title": "Название",
     "params.saved_labels.load.browser": "Открыть",

@@ -112,7 +112,7 @@
     "params.saved_labels.download": "تنزيل",
     "params.saved_labels.save_to_phone": "حفظ على الهاتف",
     "params.saved_labels.saved_to_phone": "تم الحفظ على الهاتف:",
-    "params.saved_labels.phone_copy_note": "يؤدي الحفظ أيضًا إلى كتابة نسخة في Documents/NiimBlue على هذا الهاتف.",
+    "params.saved_labels.phone_copy_note": "يؤدي الحفظ أيضًا إلى كتابة نسخة في Documents/NiimBlue/Saved على هذا الهاتف.",
     "params.saved_labels.label_title.placeholder": "(اختياري)",
     "params.saved_labels.label_title": "عنوان",
     "params.saved_labels.load.browser": "تحميل",

@@ -114,7 +114,7 @@
     "params.saved_labels.download": "Letöltés",
     "params.saved_labels.save_to_phone": "Mentés a telefonra",
     "params.saved_labels.saved_to_phone": "Mentve a telefonra:",
-    "params.saved_labels.phone_copy_note": "Mentéskor egy másolat a telefon Documents/NiimBlue mappájába is kerül.",
+    "params.saved_labels.phone_copy_note": "Mentéskor egy másolat a telefon Documents/NiimBlue/Saved mappájába is kerül.",
     "params.saved_labels.label_title.placeholder": "(tetszőleges)",
     "params.saved_labels.label_title": "Cím",
     "params.saved_labels.load.browser": "Betöltés",

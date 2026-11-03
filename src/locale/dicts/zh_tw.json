@@ -114,7 +114,7 @@
     "params.saved_labels.download": "下載",
     "params.saved_labels.save_to_phone": "儲存到手機",
     "params.saved_labels.saved_to_phone": "已儲存到手機：",
-    "params.saved_labels.phone_copy_note": "儲存時也會在此手機的 Documents/NiimBlue 寫入一份副本。",
+    "params.saved_labels.phone_copy_note": "儲存時也會在此手機的 Documents/NiimBlue/Saved 寫入一份副本。",
     "params.saved_labels.label_title.placeholder": "（選填）",
     "params.saved_labels.label_title": "標題",
     "params.saved_labels.load.browser": "載入",

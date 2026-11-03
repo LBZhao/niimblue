@@ -114,7 +114,7 @@
     "params.saved_labels.download": "İndir",
     "params.saved_labels.save_to_phone": "Telefona kaydet",
     "params.saved_labels.saved_to_phone": "Telefona kaydedildi:",
-    "params.saved_labels.phone_copy_note": "Kaydetme işlemi bu telefonda Documents/NiimBlue klasörüne de bir kopya yazar.",
+    "params.saved_labels.phone_copy_note": "Kaydetme işlemi bu telefonda Documents/NiimBlue/Saved klasörüne de bir kopya yazar.",
     "params.saved_labels.label_title.placeholder": "(isteğe bağlı)",
     "params.saved_labels.label_title": "Başlık",
     "params.saved_labels.load.browser": "Yükle",

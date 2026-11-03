@@ -11,8 +11,8 @@ Tested on a **NIIMBOT M2_H** (300 dpi, 36.5 × 9.5 mm split labels: a 25 mm roun
 - **Split labels with a dot**: a main piece and a second piece can each be a rectangle, rounded rectangle or circle. The main text, a copy for the dot and today's date are fitted automatically. Short names (one or two words) are stacked one word per line in the dot, and wrapped words never run into the date.
 - **Editor**: the gap between split pieces shows as a 1 mm strip with a dashed line, and the label zooms to fit the phone's screen width.
 - **Label fonts**: Barlow Semi Condensed, Roboto Condensed, IBM Plex Sans Condensed and Atkinson Hyperlegible Next are bundled for offline use. Changing the main font also updates the dot and the date.
-- **Recently printed**: the last 20 printed labels are listed under the toolbar; tap one to load it (Undo restores the previous label). Saved and imported labels always print with today's date.
-- **Save to phone**: on Android, saved labels are also written as JSON files to `Documents/NiimBlue`, so they survive reinstalling the app.
+- **Recently printed**: every printed label is listed under the toolbar, once each (reprints and date changes don't add copies); tap one to load it (Undo restores the previous label). Saved and imported labels always print with today's date.
+- **Save to phone**: on Android, labels saved with a button go to `Documents/NiimBlue/Saved`, and every label printed for the first time is kept in `Documents/NiimBlue/History` as `YYYYMMDD_<first line>.json`. Both survive reinstalling the app.
 - **Easier on a phone**: saved labels and label presets are shown in two columns with real-shape previews, and an Edit mode with large delete buttons and a confirmation.
 - **Fixes**: label thumbnails are drawn at the real label size, and M2 printers are detected and set to the top print direction.
 

@@ -130,7 +130,7 @@
     "params.saved_labels.download": "Изтегляне",
     "params.saved_labels.save_to_phone": "Запис в телефона",
     "params.saved_labels.saved_to_phone": "Записано в телефона:",
-    "params.saved_labels.phone_copy_note": "При запис се създава и копие в Documents/NiimBlue на този телефон.",
+    "params.saved_labels.phone_copy_note": "При запис се създава и копие в Documents/NiimBlue/Saved на този телефон.",
     "params.saved_labels.menu_title": "Запис/зареждане (запазва в браузера)",
     "params.saved_labels.save.withcsv": "Динамичните данни (CSV) са активирани, така че ще бъдат включени в запазения етикет",
     "params.saved_labels.save.browser.replace": "Запис (заместване)",

@@ -104,7 +104,7 @@
     "params.saved_labels.download": "Télécharger",
     "params.saved_labels.save_to_phone": "Enregistrer sur le téléphone",
     "params.saved_labels.saved_to_phone": "Enregistré sur le téléphone :",
-    "params.saved_labels.phone_copy_note": "L'enregistrement écrit aussi une copie dans Documents/NiimBlue sur ce téléphone.",
+    "params.saved_labels.phone_copy_note": "L'enregistrement écrit aussi une copie dans Documents/NiimBlue/Saved sur ce téléphone.",
     "params.saved_labels.label_title.placeholder": "(facultatif)",
     "params.saved_labels.label_title": "Titre",
     "params.saved_labels.load.browser": "Charger",

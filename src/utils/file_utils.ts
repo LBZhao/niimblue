@@ -24,8 +24,11 @@ import { LocalStoragePersistence } from "./persistence";
 import { bundledFontsReady, csvData, loadedFonts, recentPrints } from "$/stores";
 import { get } from "svelte/store";
 
-/** Folder under the phone's Documents where saved labels are written. */
+/** Folder under the phone's Documents where labels are written. */
 const PHONE_LABELS_DIR = "NiimBlue";
+
+/** Saved: labels saved with a button. History: labels recorded automatically when first printed. */
+export type PhoneLabelFolder = "Saved" | "History";
 
 export class FileUtils {
   static timestamp(): number {
@@ -198,7 +201,7 @@ export class FileUtils {
   }
 
   /**
-   * Write the label to Documents/NiimBlue on the phone, so it survives reinstalling the app.
+   * Write the label to Documents/NiimBlue/<folder> on the phone, so it survives reinstalling the app.
    * The same title overwrites its file. Returns the path shown to the user, or null on the web.
    */
   static async saveLabelToPhone(
@@ -208,15 +211,18 @@ export class FileUtils {
       fileName?: string;
       /** Never replace an existing file: add _2, _3, ... instead. */
       keepExisting?: boolean;
+      /** Subfolder of Documents/NiimBlue. Defaults to Saved. */
+      folder?: PhoneLabelFolder;
     } = {},
   ): Promise<string | null> {
     if (Capacitor.getPlatform() === "web") return null;
     const { Directory, Encoding, Filesystem } = await import("@capacitor/filesystem");
     const parsed = ExportedLabelTemplateSchema.omit({ id: true }).parse(label);
+    const dir = `${PHONE_LABELS_DIR}/${options.folder ?? "Saved"}`;
     const data = JSON.stringify(parsed);
     const write = (name: string) =>
       Filesystem.writeFile({
-        path: `${PHONE_LABELS_DIR}/${name}`,
+        path: `${dir}/${name}`,
         data,
         directory: Directory.Documents,
         encoding: Encoding.UTF8,
@@ -226,7 +232,7 @@ export class FileUtils {
     let name = options.fileName ?? FileUtils.labelFileName(parsed);
     if (options.keepExisting) {
       const exists = (n: string) =>
-        Filesystem.stat({ path: `${PHONE_LABELS_DIR}/${n}`, directory: Directory.Documents }).then(
+        Filesystem.stat({ path: `${dir}/${n}`, directory: Directory.Documents }).then(
           () => true,
           () => false,
         );
@@ -240,7 +246,7 @@ export class FileUtils {
       name = name.replace(/\.json$/, `_${FileUtils.timestamp()}.json`);
       await write(name);
     }
-    return `Documents/${PHONE_LABELS_DIR}/${name}`;
+    return `Documents/${dir}/${name}`;
   }
 
   /** Convert label template to JSON and download it */

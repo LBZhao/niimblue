@@ -213,9 +213,13 @@
       const printed = FileUtils.makeExportedLabel(fabricCanvas!, labelProps, csvEnabled, RECENT_THUMBNAIL_HEIGHT);
       const { isNew, dropped } = rememberPrintedLabel(printed);
       if (dropped > 0) Toasts.message($tr("editor.recent_prints.trimmed").replace("{n}", String(dropped)));
-      // A label printed for the first time is also kept as a file in the phone's NiimBlue folder.
+      // A label printed for the first time is also kept as a file in Documents/NiimBlue/History.
       if (isNew) {
-        FileUtils.saveLabelToPhone(printed, { fileName: historyFileName(printed), keepExisting: true })
+        FileUtils.saveLabelToPhone(printed, {
+          folder: "History",
+          fileName: historyFileName(printed),
+          keepExisting: true,
+        })
           .then((path) => {
             if (path) Toasts.message(`${$tr("params.saved_labels.saved_to_phone")} ${path}`);
           })

@@ -157,7 +157,7 @@
     "params.saved_labels.download": "डाउनलोड करा",
     "params.saved_labels.save_to_phone": "फोनवर जतन करा",
     "params.saved_labels.saved_to_phone": "फोनवर जतन केले:",
-    "params.saved_labels.phone_copy_note": "जतन करताना या फोनवर Documents/NiimBlue मध्ये एक प्रतही लिहिली जाते.",
+    "params.saved_labels.phone_copy_note": "जतन करताना या फोनवर Documents/NiimBlue/Saved मध्ये एक प्रतही लिहिली जाते.",
     "params.saved_labels.label_title.placeholder": "(ऐच्छिक)",
     "params.saved_labels.label_title": "शीर्षक",
     "params.saved_labels.load.browser": "लोड करा",
