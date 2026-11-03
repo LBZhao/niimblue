@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { get } from "svelte/store";
 import { recentPrints } from "$/stores";
-import { rememberPrintedLabel, sameLabelKey, tidyRecentPrints } from "$/utils/recent_prints";
+import dayjs from "dayjs";
+import { historyFileName, rememberPrintedLabel, sameLabelKey, tidyRecentPrints } from "$/utils/recent_prints";
 import type { ExportedLabelTemplate, LabelProps } from "$/types";
 
 const LABEL: LabelProps = {
@@ -85,6 +86,12 @@ describe("history", () => {
     expect(list.map((e) => e.timestamp)).toEqual([3, 2]);
   });
 
+  it("reports a first print as new and a reprint as not new", () => {
+    expect(rememberPrintedLabel(print(tenXte(), {}, 1)).isNew).toBe(true);
+    expect(rememberPrintedLabel(print(tenXte({ fontSize: 37 }, "11/09/2026"), {}, 2)).isNew).toBe(false);
+    expect(rememberPrintedLabel(print(tenXte(), { splitSizeA: 236 }, 3)).isNew).toBe(true);
+  });
+
   it("keeps more than the old limit of 20", () => {
     for (let i = 0; i < 30; i++) rememberPrintedLabel(print([text("primary", `Item ${i}`)], {}, i + 1));
     expect(get(recentPrints).length).toBe(30);
@@ -98,5 +105,18 @@ describe("history", () => {
     ]);
     tidyRecentPrints();
     expect(get(recentPrints).map((e) => e.timestamp)).toEqual([9, 4]);
+  });
+});
+
+describe("historyFileName", () => {
+  const day = dayjs("2026-11-02");
+
+  it("is the print date and the first line", () => {
+    expect(historyFileName(print(tenXte()), day)).toBe("20261102_10x TE.json");
+  });
+
+  it("replaces characters that can't be in a file name and falls back to 'label'", () => {
+    expect(historyFileName(print([text("primary", 'A/B: "x"?')]), day)).toBe("20261102_A_B_ _x__.json");
+    expect(historyFileName(print([text("primary", "")]), day)).toBe("20261102_label.json");
   });
 });

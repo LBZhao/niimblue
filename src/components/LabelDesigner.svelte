@@ -50,7 +50,7 @@
   import { isM2Printer } from "$/utils/print_direction";
   import RecentPrints from "$/components/designer-controls/RecentPrints.svelte";
   import FeedChip from "$/components/basic/FeedChip.svelte";
-  import { rememberPrintedLabel } from "$/utils/recent_prints";
+  import { historyFileName, rememberPrintedLabel } from "$/utils/recent_prints";
   import { z } from "zod";
 
   let htmlCanvas: HTMLCanvasElement;
@@ -210,10 +210,17 @@
 
   const onPrinted = () => {
     try {
-      const dropped = rememberPrintedLabel(
-        FileUtils.makeExportedLabel(fabricCanvas!, labelProps, csvEnabled, RECENT_THUMBNAIL_HEIGHT),
-      );
+      const printed = FileUtils.makeExportedLabel(fabricCanvas!, labelProps, csvEnabled, RECENT_THUMBNAIL_HEIGHT);
+      const { isNew, dropped } = rememberPrintedLabel(printed);
       if (dropped > 0) Toasts.message($tr("editor.recent_prints.trimmed").replace("{n}", String(dropped)));
+      // A label printed for the first time is also kept as a file in the phone's NiimBlue folder.
+      if (isNew) {
+        FileUtils.saveLabelToPhone(printed, { fileName: historyFileName(printed), keepExisting: true })
+          .then((path) => {
+            if (path) Toasts.message(`${$tr("params.saved_labels.saved_to_phone")} ${path}`);
+          })
+          .catch((e) => Toasts.error(e));
+      }
     } catch (e) {
       if (e instanceof z.ZodError) Toasts.zodErrors(e, "Recent prints save error:");
       else Toasts.error(e);

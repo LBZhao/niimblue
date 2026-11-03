@@ -201,7 +201,15 @@ export class FileUtils {
    * Write the label to Documents/NiimBlue on the phone, so it survives reinstalling the app.
    * The same title overwrites its file. Returns the path shown to the user, or null on the web.
    */
-  static async saveLabelToPhone(label: ExportedLabelTemplate): Promise<string | null> {
+  static async saveLabelToPhone(
+    label: ExportedLabelTemplate,
+    options: {
+      /** File name to use instead of the label's title. */
+      fileName?: string;
+      /** Never replace an existing file: add _2, _3, ... instead. */
+      keepExisting?: boolean;
+    } = {},
+  ): Promise<string | null> {
     if (Capacitor.getPlatform() === "web") return null;
     const { Directory, Encoding, Filesystem } = await import("@capacitor/filesystem");
     const parsed = ExportedLabelTemplateSchema.omit({ id: true }).parse(label);
@@ -215,7 +223,16 @@ export class FileUtils {
         recursive: true,
       });
 
-    let name = FileUtils.labelFileName(parsed);
+    let name = options.fileName ?? FileUtils.labelFileName(parsed);
+    if (options.keepExisting) {
+      const exists = (n: string) =>
+        Filesystem.stat({ path: `${PHONE_LABELS_DIR}/${n}`, directory: Directory.Documents }).then(
+          () => true,
+          () => false,
+        );
+      const base = name.replace(/\.json$/, "");
+      for (let i = 2; await exists(name); i++) name = `${base}_${i}.json`;
+    }
     try {
       await write(name);
     } catch {

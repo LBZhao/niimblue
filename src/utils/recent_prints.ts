@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { get } from "svelte/store";
 import { recentPrints } from "$/stores";
 import type { ExportedLabelTemplate } from "$/types";
@@ -80,11 +81,23 @@ const saveWithinStorage = (list: ExportedLabelTemplate[]): number => {
 
 /**
  * Put the printed label first. A reprint moves the older copy instead of adding another.
- * All history is kept; returns how many old entries had to go to make room, usually 0.
+ * All history is kept. `isNew` is false for a reprint; `dropped` counts old entries that had to
+ * go to make room, usually 0.
  */
-export const rememberPrintedLabel = (tpl: ExportedLabelTemplate): number => {
+export const rememberPrintedLabel = (tpl: ExportedLabelTemplate): { isNew: boolean; dropped: number } => {
   const key = sameLabelKey(tpl);
-  return saveWithinStorage([tpl, ...get(recentPrints).filter((e) => sameLabelKey(e) !== key)]);
+  const list = get(recentPrints);
+  const others = list.filter((e) => sameLabelKey(e) !== key);
+  return { isNew: others.length === list.length, dropped: saveWithinStorage([tpl, ...others]) };
+};
+
+/** File name for a newly printed label on the phone: print date and first line, e.g. "20261102_10x TE.json". */
+export const historyFileName = (tpl: ExportedLabelTemplate, printedAt = dayjs()): string => {
+  const name = recentPrintName(tpl)
+    .replaceAll(/[\\/:*?"<>|\r\n\t]/g, "_")
+    .trim()
+    .slice(0, 60);
+  return `${printedAt.format("YYYYMMDD")}_${name || "label"}.json`;
 };
 
 /** Merge entries saved before labels were compared by content. Safe to run on every start. */
