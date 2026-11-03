@@ -53,6 +53,24 @@ body {
   color: var(--bs-success-text-emphasis);
 }
 
+/* A label (canvas) with its feed chip at the edge that prints first. */
+.feed-stage {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.feed-stage.feed-top {
+  flex-direction: column;
+}
+
+.feed-stage > :not(.feed-chip) {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .cursor-help {
   cursor: help;
 }

@@ -49,6 +49,7 @@
   import { CanvasUtils } from "$/utils/canvas_utils";
   import { isM2Printer } from "$/utils/print_direction";
   import RecentPrints from "$/components/designer-controls/RecentPrints.svelte";
+  import FeedChip from "$/components/basic/FeedChip.svelte";
   import { rememberPrintedLabel } from "$/utils/recent_prints";
   import { z } from "zod";
 
@@ -172,8 +173,11 @@
   const fitZoomToScreen = () => {
     if (!fabricCanvas || !canvasColumn) return;
     const style = getComputedStyle(canvasColumn);
-    // Column padding plus the 1px wrapper border on each side.
-    const available = canvasColumn.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2;
+    // Column padding, the 1px wrapper border on each side, and a feed chip beside the label.
+    const sideChip = canvasColumn.querySelector<HTMLElement>(".feed-chip.feed-left");
+    const chipWidth = sideChip ? sideChip.offsetWidth + 4 : 0;
+    const available =
+      canvasColumn.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2 - chipWidth;
     fabricCanvas.fitToWidth(available);
   };
 
@@ -545,8 +549,11 @@
 <div class="image-editor">
   <div class="row mb-3">
     <div class="col d-flex justify-content-center" bind:this={canvasColumn}>
-      <div class="canvas-wrapper print-start-{labelProps.printDirection}">
-        <canvas bind:this={htmlCanvas}></canvas>
+      <div class="feed-stage feed-{labelProps.printDirection}">
+        <FeedChip direction={labelProps.printDirection} />
+        <div class="canvas-wrapper">
+          <canvas bind:this={htmlCanvas}></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -684,12 +691,6 @@
     max-width: 100%;
     max-height: 70vh;
     overflow: auto;
-  }
-  .canvas-wrapper.print-start-left {
-    border-left: 2px solid #ff4646;
-  }
-  .canvas-wrapper.print-start-top {
-    border-top: 2px solid #ff4646;
   }
   .canvas-wrapper :global(.canvas-container),
   .canvas-wrapper :global(canvas) {

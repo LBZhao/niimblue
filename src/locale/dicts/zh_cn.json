@@ -28,6 +28,7 @@
     "editor.objectpicker.text": "文字",
     "editor.objectpicker.title": "添加元素",
     "editor.preview": "预览",
+    "editor.print_starts": "从此处开始打印",
     "editor.recent_prints": "最近打印",
     "editor.print": "打印",
     "editor.redo": "重做",

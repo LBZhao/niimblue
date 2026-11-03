@@ -29,6 +29,7 @@
   import { FileUtils } from "$/utils/file_utils";
   import { printDirectionForPrinter } from "$/utils/print_direction";
   import AppModal from "$/components/basic/AppModal.svelte";
+  import FeedChip from "$/components/basic/FeedChip.svelte";
 
   interface Props {
     labelProps: LabelProps;
@@ -428,7 +429,10 @@
       </button>
     {/if}
 
-    <canvas class="print-start-{effectivePrintDirection}" bind:this={previewCanvas}></canvas>
+    <div class="feed-stage feed-{effectivePrintDirection}">
+      <FeedChip direction={effectivePrintDirection} />
+      <canvas bind:this={previewCanvas}></canvas>
+    </div>
 
     {#if pagesTotal > 1}
       <button disabled={printState !== "idle"} class="btn w-100 fs-1" onclick={pageUp}>
@@ -725,12 +729,6 @@
     image-rendering: pixelated;
     border: 1px solid #6d6d6d;
     max-width: 100%;
-  }
-  canvas.print-start-left {
-    border-left: 2px solid #ff4646;
-  }
-  canvas.print-start-top {
-    border-top: 2px solid #ff4646;
   }
   .progress-bar {
     transition: none;

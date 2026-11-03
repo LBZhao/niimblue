@@ -18,7 +18,6 @@
     pieces: Piece[];
     tail?: { x: number; y: number; width: number; height: number };
     radius: number;
-    edge: { x1: number; y1: number; x2: number; y2: number };
   };
 
   let { class: className = "", onItemDelete, onItemSelected, presets }: Props = $props();
@@ -83,12 +82,7 @@
               ? { x: (width - tailWidth) / 2, y: endY, width: tailWidth, height: tail }
               : { x: (width - tailWidth) / 2, y: 0, width: tailWidth, height: tail };
 
-    const edge =
-      preset.printDirection === "left"
-        ? { x1: startX, y1: startY, x2: startX, y2: endY }
-        : { x1: startX, y1: startY, x2: endX, y2: startY };
-
-    return { width, height, pieces, tail: tailRect, radius: cornerRadius(preset), edge };
+return { width, height, pieces, tail: tailRect, radius: cornerRadius(preset) };
   };
 
   const presetName = (preset: LabelPreset): string => {
@@ -156,8 +150,9 @@
               <rect x={p.x} y={p.y} width={p.width} height={p.height} rx={r} ry={r} class="piece" />
             {/if}
           {/each}
-          <line x1={o.edge.x1} y1={o.edge.y1} x2={o.edge.x2} y2={o.edge.y2} class="print-edge" />
         </svg>
+        <!-- Points into the edge that prints first. -->
+        <span class="feed-mark feed-{item.printDirection}"><MdIcon icon="arrow_downward" /></span>
 
         <span class="preset-name">{presetName(item)}</span>
         {#if presetDpi(item)}
@@ -213,10 +208,23 @@
     fill: #cfcfcf;
   }
 
-  .print-edge {
-    stroke: #ff4646;
-    stroke-width: 3px;
-    vector-effect: non-scaling-stroke;
+  .feed-mark {
+    position: absolute;
+    color: var(--bs-primary-text-emphasis);
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+
+  .feed-mark.feed-top {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .feed-mark.feed-left {
+    top: 42px;
+    left: 2px;
+    transform: translateY(-50%) rotate(-90deg);
   }
 
   .preset-name {
