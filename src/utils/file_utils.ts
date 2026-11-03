@@ -158,25 +158,29 @@ export class FileUtils {
     FileUtils.downloadBase64Web(filename, mime, base64Data);
   }
 
+  /** The label drawn on its liner at the given height in pixels. Text and shapes are redrawn at that size, not scaled up. */
+  static labelPicture(canvas: fabric.Canvas, height: number, format: "jpeg" | "png"): string {
+    const options = {
+      width: canvas.width,
+      height: canvas.height,
+      left: 0,
+      top: 0,
+      multiplier: height / (canvas.height || 1),
+      quality: THUMBNAIL_QUALITY,
+      format,
+    };
+    return canvas instanceof CustomCanvas
+      ? canvas.withThumbnailBackground(() => canvas.toDataURL(options))
+      : canvas.toDataURL(options);
+  }
+
   static makeExportedLabel(
     canvas: fabric.Canvas,
     labelProps: LabelProps,
     includeCsv: boolean,
     thumbnailHeight: number = THUMBNAIL_HEIGHT,
   ): ExportedLabelTemplate {
-    const thumbnailOptions = {
-      width: canvas.width,
-      height: canvas.height,
-      left: 0,
-      top: 0,
-      multiplier: thumbnailHeight / (canvas.height || 1),
-      quality: THUMBNAIL_QUALITY,
-      format: "jpeg" as const,
-    };
-    const thumbnailBase64: string =
-      canvas instanceof CustomCanvas
-        ? canvas.withThumbnailBackground(() => canvas.toDataURL(thumbnailOptions))
-        : canvas.toDataURL(thumbnailOptions);
+    const thumbnailBase64 = FileUtils.labelPicture(canvas, thumbnailHeight, "jpeg");
 
     const tpl: ExportedLabelTemplate = {
       canvas: canvas.toJSON(),
@@ -520,6 +524,11 @@ export class FileUtils {
     tpl: ExportedLabelTemplate,
     height: number = THUMBNAIL_HEIGHT,
   ): Promise<string | undefined> {
+    return FileUtils.renderLabelPicture(tpl, height, "jpeg");
+  }
+
+  /** Draw a stored label at the given height. PNG keeps text edges sharp; JPEG is smaller to store. */
+  static async renderLabelPicture(tpl: ExportedLabelTemplate, height: number, format: "jpeg" | "png"): Promise<string> {
     const canvas = new CustomCanvas(undefined, { width: tpl.label.size.width, height: tpl.label.size.height });
     try {
       canvas.suspendManagedLayout = true;
@@ -527,7 +536,7 @@ export class FileUtils {
       await FileUtils.loadCanvasState(canvas, tpl.canvas);
       canvas.suspendManagedLayout = false;
       canvas.layoutManagedText();
-      return FileUtils.makeExportedLabel(canvas, tpl.label, false, height).thumbnailBase64;
+      return FileUtils.labelPicture(canvas, height, format);
     } finally {
       canvas.dispose();
     }
