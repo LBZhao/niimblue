@@ -95,28 +95,6 @@ export const twoPieceLayout = (props: LabelProps, bb: LabelBounds): TwoPieceLayo
   };
 };
 
-/** The editor view: the second piece moved `shift` closer, leaving a smaller gap. */
-export const collapseLayout = (layout: TwoPieceLayout, shift: number): TwoPieceLayout => {
-  const [a, b] = layout.pieces;
-  const shown = layout.gap - shift;
-  if (layout.axis === "vertical") {
-    return {
-      ...layout,
-      pieces: [a, { ...b, x: b.x - shift }],
-      gap: shown,
-      gapRect: { x: a.x + a.width, y: a.y, width: shown, height: a.height },
-      flipAxis: a.x + a.width + shown / 2,
-    };
-  }
-  return {
-    ...layout,
-    pieces: [a, { ...b, y: b.y - shift }],
-    gap: shown,
-    gapRect: { x: a.x, y: a.y + a.height, width: a.width, height: shown },
-    flipAxis: a.y + a.height + shown / 2,
-  };
-};
-
 /** Add one piece's outline to the current path. */
 export const tracePiece = (ctx: CanvasRenderingContext2D, piece: SplitPiece, cornerRadius: number) => {
   const { x, y, width, height, shape } = piece;

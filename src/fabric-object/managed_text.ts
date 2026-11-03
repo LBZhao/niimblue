@@ -47,24 +47,24 @@ export class ManagedText {
 
   /**
    * Fit the main text, the copy and the date. "primary" refits the main box and the copy,
-   * "secondary" only the copy. `physical` lays out on the real pieces (print, thumbnails).
+   * "secondary" only the copy.
    */
-  apply(mode: "all" | "primary" | "secondary", physical = false) {
+  apply(mode: "all" | "primary" | "secondary") {
     const canvas = this.canvas;
     canvas.layoutQuiet = true;
     try {
       const showDate = canvas.getLabelProps().date?.show !== false;
       if (mode === "all" && !showDate) this.removeRole("date");
       const date = !showDate ? undefined : mode === "all" ? this.ensureDate() : this.findRole("date");
-      let frames = this.frames(date?.height ?? 0, physical);
+      let frames = this.frames(date?.height ?? 0);
       if (mode === "all" && date) {
         // Size the date for the whole piece first, then again if the text band leaves it less room.
-        const first = this.frames(0, physical).date;
+        const first = this.frames(0).date;
         sizeDateText(date, this.dateStamp(), first.labelHeight, first.maxWidth, first.maxHeight);
-        frames = this.frames(date.height, physical);
+        frames = this.frames(date.height);
         if (date.height > frames.date.maxHeight || date.calcTextWidth() > frames.date.maxWidth) {
           sizeDateText(date, this.dateStamp(), frames.date.labelHeight, frames.date.maxWidth, frames.date.maxHeight);
-          frames = this.frames(date.height, physical);
+          frames = this.frames(date.height);
         }
         this.placeDate(date, frames);
       }
@@ -152,11 +152,10 @@ export class ManagedText {
   }
 
   /** Where each box goes, given the date's height. */
-  private frames(dateHeight: number, physical: boolean): Frames {
+  private frames(dateHeight: number): Frames {
     const canvas = this.canvas;
     const bounds = canvas.getLabelBounds();
-    // Print and thumbnails use the real gap. The editor view has it collapsed.
-    const layout = physical ? canvas.getTwoPieceLayout() : canvas.displayLayout();
+    const layout = canvas.getTwoPieceLayout();
     const band = dateHeight + EDGE_MARGIN;
     const primary: SplitPiece = layout?.pieces[0] ?? {
       x: bounds.startX,
@@ -199,8 +198,6 @@ export class ManagedText {
       "center",
       "bottom",
     );
-    // The date always belongs to the main piece.
-    this.canvas.holdPiece(date, false);
     date.setCoords();
     date.lastLayoutText = date.text;
     date.dirty = true;
@@ -226,7 +223,6 @@ export class ManagedText {
     if (!box) box = this.createRole("primary", this.canvas.defaultLabelText);
     placeFittedText(box, box.text ?? "", this.textArea(frames.primary, true, frames.textLimitY));
     box.lastLayoutText = box.text;
-    this.canvas.holdPiece(box, false);
   }
 
   private fitSecondary(frames: Frames) {
@@ -245,7 +241,6 @@ export class ManagedText {
       placeFittedText(box, source, this.textArea(piece, false, frames.textLimitY));
     }
     box.lastLayoutText = box.text;
-    this.canvas.holdPiece(box, true);
   }
 
   /**
@@ -254,7 +249,7 @@ export class ManagedText {
    * Deleting refits, so the font can grow back.
    */
   private lockPrimaryWrap(box: TextboxExt, prevText: string) {
-    const frames = this.frames(this.findRole("date")?.height ?? 0, false);
+    const frames = this.frames(this.findRole("date")?.height ?? 0);
     const area = this.textArea(frames.primary, true, frames.textLimitY);
     const pieceWidth = Math.max(1, area.width);
     const shorter = (box.text ?? "").length < prevText.length;
@@ -288,7 +283,6 @@ export class ManagedText {
         box.setCoords();
         box.dirty = true;
       }
-      canvas.holdPiece(box, false);
     } finally {
       canvas.layoutQuiet = false;
     }

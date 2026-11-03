@@ -172,7 +172,7 @@ export class FileUtils {
     };
     const thumbnailBase64: string =
       canvas instanceof CustomCanvas
-        ? canvas.withPhysicalGap(() => canvas.toDataURL(thumbnailOptions))
+        ? canvas.withThumbnailBackground(() => canvas.toDataURL(thumbnailOptions))
         : canvas.toDataURL(thumbnailOptions);
 
     const tpl: ExportedLabelTemplate = {

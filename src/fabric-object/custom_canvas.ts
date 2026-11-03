@@ -5,10 +5,8 @@ import {
   GRID_SIZE,
   LABEL_CORNER_RADIUS_MM,
 } from "$/defaults";
-import { TextboxExt } from "$/fabric-object/textbox-ext";
 import { ManagedText } from "$/fabric-object/managed_text";
 import {
-  collapseLayout,
   labelBounds,
   tracePiece,
   twoPieceLayout,
@@ -44,15 +42,12 @@ export class CustomCanvas extends fabric.Canvas {
   /** Backing paper around the pieces in thumbnails. Darker than GRAY so white pieces read clearly. */
   private readonly LINER = "#9E9E9E";
   private readonly MIRROR_GHOST_COLOR = "rgba(0, 0, 0, 0.3)";
-  /** Gap shown between split pieces in the editor. */
-  private readonly EDITOR_GAP_MM = 1;
   private customBackground: boolean = true;
   private highlightMirror: boolean = true;
   private gridEnabled: boolean = false;
   private virtualZoomRatio: number = 1;
-  /** Thumbnail capture draws the real gap. The editor collapses it to a dashed line. */
-  private showPhysicalGap: boolean = false;
-  private gapSyncPaused: boolean = false;
+  /** Thumbnail capture: paint the liner behind the pieces (JPEG has no transparency). */
+  private capturingThumbnail: boolean = false;
   /** Skip auto-fit while a saved label is replacing the canvas. */
   suspendManagedLayout = false;
   /** True while the fitter is moving managed text, so undo can ignore that removal. */
@@ -69,16 +64,10 @@ export class CustomCanvas extends fabric.Canvas {
     super(el, options);
     this.setupZoomAndPan();
     this.preserveObjectStacking = true;
-    this.on("object:added", (e) => e.target && this.syncObjectGap(e.target));
+    this.on("object:added", (e) => e.target && this.expandLegacyGapOffset(e.target));
     this.on("text:changed", (opt) => {
       const target = (opt as { target?: fabric.FabricObject }).target;
       if (this.managedLayoutAllowed()) this.managed.onTextChanged(target);
-    });
-    this.on("object:modified", (e) => {
-      const target = e.target;
-      if (!target) return;
-      const objects = target instanceof fabric.ActiveSelection ? target.getObjects() : [target];
-      objects.forEach((obj) => this.syncObjectGap(obj));
     });
   }
 
@@ -206,13 +195,11 @@ export class CustomCanvas extends fabric.Canvas {
     if (this.onZoomChange) {
       this.onZoomChange(this.virtualZoomRatio);
     }
-    this.applyEditorClip();
   }
 
-  /** Width the editor shows at 100%, after pulling the split pieces together. */
+  /** Width the editor shows at 100%. */
   public editorWidth(): number {
-    const collapse = this.layoutGapShift();
-    return this.getWidth() - (collapse?.axis === "vertical" ? collapse.gap : 0);
+    return this.getWidth();
   }
 
   /** Zoom out so the label fits `available` CSS pixels. Never zooms in past 100%. */
@@ -221,24 +208,14 @@ export class CustomCanvas extends fabric.Canvas {
     this.virtualZoom(Math.min(1, available / this.editorWidth()));
   }
 
-  /**
-   * Draw the real gray gap, then restore the editor view.
-   * Used for saved-label thumbnails.
-   */
-  withPhysicalGap<T>(draw: () => T): T {
-    this.gapSyncPaused = true;
-    this.showPhysicalGap = true;
+  /** Draw with the liner painted behind the pieces. Used for saved-label thumbnails. */
+  withThumbnailBackground<T>(draw: () => T): T {
+    this.capturingThumbnail = true;
     try {
-      this.getObjects().forEach((obj) => this.expandObject(obj));
-      this.layoutManagedTextForOutput();
-      this.applyEditorClip();
       this.renderAll();
       return draw();
     } finally {
-      this.showPhysicalGap = false;
-      this.gapSyncPaused = false;
-      this.syncEditorGap();
-      this.layoutManagedText();
+      this.capturingThumbnail = false;
       this.renderAll();
     }
   }
@@ -261,7 +238,6 @@ export class CustomCanvas extends fabric.Canvas {
 
   setLabelProps(value: LabelProps) {
     this.labelProps = value;
-    this.syncEditorGap();
     this.layoutManagedText();
     this.requestRenderAll();
   }
@@ -284,143 +260,20 @@ export class CustomCanvas extends fabric.Canvas {
     return Math.round(LABEL_CORNER_RADIUS_MM * (this.labelProps.dpmm ?? FALLBACK_DPMM));
   }
 
-  /** Gap the editor keeps between the two pieces, in pixels. */
-  private editorGap(physicalGap: number): number {
-    const dpmm = this.labelProps.dpmm ?? FALLBACK_DPMM;
-    return Math.min(physicalGap, Math.round(this.EDITOR_GAP_MM * dpmm));
-  }
-
   /**
-   * Editor view pulls the two pieces together, leaving a small gap. Thumbnails keep the real gap.
-   * `gap` is how far the second piece moves, not the gap that is left.
+   * Labels saved while the editor collapsed the split gap stored how far objects on the second
+   * piece were moved. Move them back once so they sit on the real piece.
    */
-  private layoutGapShift(): { axis: "vertical" | "horizontal"; gap: number } | null {
-    if (this.showPhysicalGap || !this.customBackground) return null;
-    const layout = this.getTwoPieceLayout();
-    if (!layout || !(layout.gap > 0)) return null;
-    const shift = layout.gap - this.editorGap(layout.gap);
-    if (!(shift > 0)) return null;
-    return { axis: layout.axis, gap: shift };
-  }
-
-  /** The pieces as the editor shows them, with the gap collapsed. */
-  displayLayout(): TwoPieceLayout | null {
-    const layout = this.getTwoPieceLayout();
-    if (!layout) return null;
-    const collapse = this.layoutGapShift();
-    return collapse ? collapseLayout(layout, collapse.gap) : layout;
-  }
-
-  private tailDrawShift(): { x: number; y: number } {
-    const collapse = this.layoutGapShift();
-    if (!collapse) return { x: 0, y: 0 };
-    if (collapse.axis === "vertical" && this.labelProps.tailPos === "right") return { x: -collapse.gap, y: 0 };
-    if (collapse.axis === "horizontal" && this.labelProps.tailPos === "bottom") return { x: 0, y: -collapse.gap };
-    return { x: 0, y: 0 };
-  }
-
-  private expandObject(obj: fabric.FabricObject) {
+  private expandLegacyGapOffset(obj: fabric.FabricObject) {
     const o = obj as GapObject;
     const dx = o.gapOffsetX ?? 0;
     const dy = o.gapOffsetY ?? 0;
-    if (dx) obj.left = (obj.left ?? 0) + dx;
-    if (dy) obj.top = (obj.top ?? 0) + dy;
     delete o.gapOffsetX;
     delete o.gapOffsetY;
-    if (dx || dy) obj.setCoords();
-  }
-
-  private setGapOffset(obj: GapObject, axis: "vertical" | "horizontal", value: number) {
-    if (axis === "vertical") {
-      if (value) obj.gapOffsetX = value;
-      else delete obj.gapOffsetX;
-      delete obj.gapOffsetY;
-    } else {
-      if (value) obj.gapOffsetY = value;
-      else delete obj.gapOffsetY;
-      delete obj.gapOffsetX;
-    }
-  }
-
-  /** Keep each object on its piece when the editor hides the gap. */
-  private syncObjectGap(obj: fabric.FabricObject) {
-    if (this.gapSyncPaused) return;
-    const layout = this.getTwoPieceLayout();
-    const collapse = this.layoutGapShift();
-    if (!layout || !collapse) {
-      this.expandObject(obj);
-      return;
-    }
-    // The date is placed on the main piece. Collapsing the gap must not slide it.
-    if (obj instanceof TextboxExt && obj.labelRole === "date") return;
-
-    const o = obj as GapObject;
-    if (collapse.axis === "vertical" && o.gapOffsetY) this.expandObject(obj);
-    if (collapse.axis === "horizontal" && o.gapOffsetX) this.expandObject(obj);
-
-    const prev = collapse.axis === "vertical" ? (o.gapOffsetX ?? 0) : (o.gapOffsetY ?? 0);
-    const center = obj.getCenterPoint();
-    const coord = collapse.axis === "vertical" ? center.x : center.y;
-    const fullPieceB = collapse.axis === "vertical" ? layout.pieces[1].x : layout.pieces[1].y;
-
-    if (prev === 0 && coord >= fullPieceB - 0.01) {
-      if (collapse.axis === "vertical") obj.left = (obj.left ?? 0) - collapse.gap;
-      else obj.top = (obj.top ?? 0) - collapse.gap;
-      this.setGapOffset(o, collapse.axis, collapse.gap);
-      obj.setCoords();
-      return;
-    }
-
-    const onSecondPiece = coord >= fullPieceB - collapse.gap - 0.01;
-    const desired = onSecondPiece ? collapse.gap : 0;
-    if (prev !== 0 && prev !== desired) {
-      const delta = desired - prev;
-      if (collapse.axis === "vertical") obj.left = (obj.left ?? 0) - delta;
-      else obj.top = (obj.top ?? 0) - delta;
-      obj.setCoords();
-    }
-    this.setGapOffset(o, collapse.axis, desired);
-  }
-
-  private syncEditorGap() {
-    this.getObjects().forEach((obj) => this.syncObjectGap(obj));
-    this.applyEditorClip();
-  }
-
-  /** Hide the empty strip left after the two pieces are pulled together. */
-  private applyEditorClip() {
-    const container = this.getElement()?.parentElement;
-    if (!container) return;
-    const zoom = this.virtualZoomRatio;
-    const fullW = this.getWidth() * zoom;
-    const fullH = this.getHeight() * zoom;
-    const collapse = this.layoutGapShift();
-    if (!collapse) {
-      container.style.width = `${fullW}px`;
-      container.style.height = `${fullH}px`;
-      container.style.overflow = "";
-      return;
-    }
-    const dw = collapse.axis === "vertical" ? collapse.gap * zoom : 0;
-    const dh = collapse.axis === "horizontal" ? collapse.gap * zoom : 0;
-    container.style.overflow = "hidden";
-    container.style.width = `${Math.max(1, fullW - dw)}px`;
-    container.style.height = `${Math.max(1, fullH - dh)}px`;
-  }
-
-  override centerObject(object: fabric.FabricObject) {
-    const collapse = this.layoutGapShift();
-    if (!collapse) {
-      super.centerObject(object);
-      return;
-    }
-    const bb = this.getLabelBounds();
-    const endX = collapse.axis === "vertical" ? bb.endX - collapse.gap : bb.endX;
-    const endY = collapse.axis === "horizontal" ? bb.endY - collapse.gap : bb.endY;
-    object.setPositionByOrigin(new fabric.Point((bb.startX + endX) / 2, (bb.startY + endY) / 2), "center", "center");
-    object.setCoords();
-    this.syncObjectGap(object);
-    if (this.renderOnAddRemove) this.requestRenderAll();
+    if (!dx && !dy) return;
+    obj.left = (obj.left ?? 0) + dx;
+    obj.top = (obj.top ?? 0) + dy;
+    obj.setCoords();
   }
 
   /**
@@ -445,7 +298,7 @@ export class CustomCanvas extends fabric.Canvas {
 
   /** Get fold line position for splitted labels */
   getFoldInfo(): FoldInfo {
-    const layout = this.displayLayout();
+    const layout = this.getTwoPieceLayout();
     if (layout) {
       const segments = layout.pieces.map((piece) => ({
         start: layout.axis === "vertical" ? piece.x : piece.y,
@@ -523,16 +376,15 @@ export class CustomCanvas extends fabric.Canvas {
     }
 
     // Thumbnails are JPEG, which has no transparency. Paint the liner so the pieces stand out.
-    if (this.showPhysicalGap) {
+    if (this.capturingThumbnail) {
       ctx.fillStyle = this.LINER;
       ctx.fillRect(0, 0, width, height);
     }
 
-    const layout = this.displayLayout();
-    const physical = this.getTwoPieceLayout();
+    const layout = this.getTwoPieceLayout();
 
     // Disable further actions for circle labels, just render
-    if (!physical && this.labelProps.shape === "circle") {
+    if (!layout && this.labelProps.shape === "circle") {
       ctx.fillStyle = "white";
       ctx.beginPath();
       ctx.arc(width / 2, height / 2, height / 2, 0, 2 * Math.PI);
@@ -549,10 +401,7 @@ export class CustomCanvas extends fabric.Canvas {
       roundRadius = 0;
     }
 
-    // Draw tail. A right or bottom tail moves with the second piece.
-    const tailShift = this.tailDrawShift();
-    ctx.save();
-    ctx.translate(tailShift.x, tailShift.y);
+    // Draw tail
     ctx.fillStyle = this.GRAY;
 
     ctx.beginPath();
@@ -591,7 +440,6 @@ export class CustomCanvas extends fabric.Canvas {
       }
     }
     ctx.fill();
-    ctx.restore();
 
     // Draw label(s)
     ctx.fillStyle = "white";
@@ -636,44 +484,23 @@ export class CustomCanvas extends fabric.Canvas {
 
     ctx.fill();
 
-    // Thumbnails keep the gray gap. The editor uses a dashed line and no empty band.
-    const showGrayGap = !!physical && physical.gap > 0 && !this.layoutGapShift();
-    if (showGrayGap) {
-      ctx.fillStyle = this.LINER;
-      ctx.fillRect(physical.gapRect.x, physical.gapRect.y, physical.gapRect.width, physical.gapRect.height);
-    }
+    // Draw separator. Split pieces with a real gap need none: the gap shows between them.
 
     ctx.strokeStyle = this.GRAY;
     ctx.lineWidth = this.SEPARATOR_LINE_WIDTH;
     ctx.setLineDash([8, 8]);
     ctx.beginPath();
 
-    if (!showGrayGap) {
-      const separatorInset = layout
-        ? Math.min(
-            ...layout.pieces.map((piece) =>
-              piece.shape === "rounded_rect" ? Math.min(this.cornerRadius(), piece.width / 2, piece.height / 2) : 0,
-            ),
-          )
-        : roundRadius;
-      // Split pieces: the line runs down the middle of the editor gap.
-      const separators = layout
-        ? [
-            layout.axis === "vertical"
-              ? layout.gapRect.x + layout.gapRect.width / 2
-              : layout.gapRect.y + layout.gapRect.height / 2,
-          ]
-        : fold.points;
-
+    if (!layout) {
       if (fold.axis === "horizontal") {
-        separators.forEach((x) => {
-          ctx.moveTo(bb.startX + separatorInset, x);
-          ctx.lineTo(bb.endX - separatorInset, x);
+        fold.points.forEach((x) => {
+          ctx.moveTo(bb.startX + roundRadius, x);
+          ctx.lineTo(bb.endX - roundRadius, x);
         });
       } else if (fold.axis === "vertical") {
-        separators.forEach((y) => {
-          ctx.moveTo(y, bb.startY + separatorInset);
-          ctx.lineTo(y, bb.endY - separatorInset);
+        fold.points.forEach((y) => {
+          ctx.moveTo(y, bb.startY + roundRadius);
+          ctx.lineTo(y, bb.endY - roundRadius);
         });
       }
     }
@@ -855,7 +682,7 @@ export class CustomCanvas extends fabric.Canvas {
 
   /** Layout runs in the editor only, and not while a label is loading or being laid out. */
   private managedLayoutAllowed(): boolean {
-    return this.customBackground && !this.showPhysicalGap && !this.suspendManagedLayout && !this.layoutQuiet;
+    return this.customBackground && !this.capturingThumbnail && !this.suspendManagedLayout && !this.layoutQuiet;
   }
 
   /**
@@ -873,7 +700,7 @@ export class CustomCanvas extends fabric.Canvas {
    */
   layoutManagedTextForOutput() {
     if (this.layoutQuiet || this.suspendManagedLayout) return;
-    this.managed.apply("all", true);
+    this.managed.apply("all");
   }
 
   /** Call after a text control changed a managed box; a new main font carries to the copy and date. */
@@ -890,16 +717,5 @@ export class CustomCanvas extends fabric.Canvas {
     return this.labelProps;
   }
 
-  /** Remember which piece a fitted box belongs to without sliding it again. */
-  holdPiece(box: fabric.FabricObject, onSecond: boolean) {
-    const collapse = this.layoutGapShift();
-    const gap = box as GapObject;
-    if (!collapse) {
-      delete gap.gapOffsetX;
-      delete gap.gapOffsetY;
-    } else {
-      this.setGapOffset(gap, collapse.axis, onSecond ? collapse.gap : 0);
-    }
-    this.syncObjectGap(box);
-  }
+
 }

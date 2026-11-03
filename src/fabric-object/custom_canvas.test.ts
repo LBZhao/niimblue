@@ -162,12 +162,36 @@ describe("edge margin", () => {
 });
 
 describe("editor view", () => {
-  it("shows a 1 mm gap between split pieces and fits the screen width", () => {
+  it("shows the real gap between split pieces, empty, with no dashed line", () => {
     const canvas = editor(SPLIT, "Text");
-    const realGap = SPLIT.size.width - SPLIT.splitSizeA! - SPLIT.splitSizeB!;
-    expect(canvas.editorWidth()).toBe(SPLIT.size.width - realGap + Math.round(SPLIT.dpmm!));
+    expect(canvas.editorWidth()).toBe(SPLIT.size.width);
+
+    const out = canvas.toCanvasElement();
+    const ctx = out.getContext("2d")!;
+    const gapStart = SPLIT.splitSizeA!;
+    const gapEnd = SPLIT.size.width - SPLIT.splitSizeB!;
+    // Every pixel in the gap is see-through: no fill, no separator.
+    const gap = ctx.getImageData(gapStart + 1, 0, gapEnd - gapStart - 2, SPLIT.size.height).data;
+    let painted = 0;
+    for (let i = 3; i < gap.length; i += 4) if (gap[i] !== 0) painted++;
+    expect(painted).toBe(0);
+  });
+
+  it("moves objects from labels saved with the old collapsed gap back onto the real piece", async () => {
+    const canvas = editor(SPLIT, "Text");
+    const saved = canvas.toJSON();
+    // Saved while the editor pulled the second piece 5 px closer.
+    saved.objects.push({ ...new fabric.Rect({ left: 330, top: 40, width: 20, height: 20 }).toObject(), gapOffsetX: 5 });
+    await canvas.loadFromJSON(saved);
+    const rect = canvas.getObjects().find((o) => o instanceof fabric.Rect)! as fabric.Rect & { gapOffsetX?: number };
+    expect(rect.left).toBe(335);
+    expect(rect.gapOffsetX).toBeUndefined();
+  });
+
+  it("fits the label to the screen width, never above 100%", () => {
+    const canvas = editor(SPLIT, "Text");
     canvas.fitToWidth(300);
-    expect(canvas.getVirtualZoom()).toBeCloseTo(300 / canvas.editorWidth(), 3);
+    expect(canvas.getVirtualZoom()).toBeCloseTo(300 / SPLIT.size.width, 3);
     canvas.fitToWidth(10_000);
     expect(canvas.getVirtualZoom()).toBe(1);
   });
