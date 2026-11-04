@@ -14,7 +14,7 @@ import {
   type TextArea,
 } from "$/utils/label_text_layout";
 
-/** Blank rows kept above the fitted text and below the date, so printing never clips them. */
+/** Blank pixels kept between the fitted text and date and each edge of the piece, so printing never clips them. */
 export const EDGE_MARGIN = 3;
 
 type Frames = {
@@ -172,7 +172,7 @@ export class ManagedText {
       date: {
         centerX: primary.x + primary.width / 2,
         bottom: mainBottom,
-        maxWidth: Math.max(1, primary.width),
+        maxWidth: Math.max(1, primary.width - 2 * EDGE_MARGIN),
         maxHeight: Math.max(1, primary.height - 2 * EDGE_MARGIN),
         labelHeight: bounds.height,
       },
@@ -208,7 +208,12 @@ export class ManagedText {
     const top = piece.y + EDGE_MARGIN;
     const pieceBottom = piece.y + piece.height - EDGE_MARGIN;
     const bottom = stopAtDate ? Math.min(pieceBottom, textLimitY) : pieceBottom;
-    return { x: piece.x, y: top, width: Math.max(1, piece.width), height: Math.max(1, bottom - top) };
+    return {
+      x: piece.x + EDGE_MARGIN,
+      y: top,
+      width: Math.max(1, piece.width - 2 * EDGE_MARGIN),
+      height: Math.max(1, bottom - top),
+    };
   }
 
   private fitPrimary(frames: Frames) {

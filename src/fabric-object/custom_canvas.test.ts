@@ -161,6 +161,36 @@ describe("edge margin", () => {
   });
 });
 
+describe("side margin", () => {
+  const LONG = "Tetramethylethylenediamine";
+  // Font sizes are whole numbers, so one word may land inside the margin by luck. Try many widths.
+  const WORDS = Array.from({ length: 16 }, (_, i) => LONG.slice(0, 11 + i));
+
+  for (const [name, props] of [
+    ["single label", PLAIN_50x15],
+    ["main piece of a split label", SPLIT],
+  ] as const) {
+    it(`keeps the text and the date off the left and right edges: ${name}`, () => {
+      const width = props.splitSizeA ?? props.size.width;
+      for (const word of WORDS) {
+        const canvas = editor(props, word);
+        for (const box of [role(canvas, "primary")!, role(canvas, "date")!]) {
+          const center = box.getCenterPoint().x;
+          const half = box.calcTextWidth() / 2;
+          expect(center - half).toBeGreaterThanOrEqual(EDGE_MARGIN - 0.5);
+          expect(center + half).toBeLessThanOrEqual(width - EDGE_MARGIN + 0.5);
+        }
+      }
+    });
+  }
+
+  it("still keeps the margin on the printed label", async () => {
+    const out = await printed(PLAIN_50x15, editor(PLAIN_50x15, LONG));
+    const main = role(out, "primary")!;
+    expect(main.calcTextWidth()).toBeLessThanOrEqual(PLAIN_50x15.size.width - 2 * EDGE_MARGIN + 0.5);
+  });
+});
+
 describe("editor view", () => {
   it("shows the real gap between split pieces, empty, with no dashed line", () => {
     const canvas = editor(SPLIT, "Text");
