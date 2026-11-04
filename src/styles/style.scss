@@ -37,8 +37,21 @@ body {
   min-height: calc(100vh - var(--app-inset-top) - var(--app-inset-bottom)) !important;
 }
 
+.toastify {
+  /* Long file paths have no spaces; break them inside the box. */
+  overflow-wrap: anywhere;
+}
+
 .toastify.toastify-bottom {
   margin-bottom: var(--app-inset-bottom);
+}
+
+@media (max-width: 767.98px) {
+  /* Above the Preview/Print bar (65px tall), and wide enough to read. */
+  .toastify.toastify-bottom {
+    margin-bottom: calc(65px + var(--app-inset-bottom));
+    max-width: calc(100% - 30px);
+  }
 }
 
 .toastify.toast-danger {
