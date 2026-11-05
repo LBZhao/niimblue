@@ -104,8 +104,10 @@
   };
 
   const editInPopup = () => {
-    const text = prompt($tr("params.text.edit.title"), selectedText.text);
-    if (text !== null) {
+    const placeholder = selectedText instanceof TextboxExt && selectedText.isPlaceholder();
+    const text = prompt($tr("params.text.edit.title"), placeholder ? "" : selectedText.text);
+    // Leaving the placeholder's empty field blank is not an edit.
+    if (text !== null && (text || !placeholder)) {
       selectedText.set({ text });
       selectedText.isEditing = false;
       valueUpdated();

@@ -17,6 +17,11 @@ import {
 /** Blank pixels kept between the fitted text and date and each edge of the piece, so printing never clips them. */
 export const EDGE_MARGIN = 3;
 
+/** Fitted text never grows past this share of its piece's height, however short it is. */
+const MAX_FONT_SHARE = 1 / 3;
+
+const maxFontSize = (piece: SplitPiece): number => Math.floor(piece.height * MAX_FONT_SHARE);
+
 type Frames = {
   primary: SplitPiece;
   secondary?: SplitPiece;
@@ -213,6 +218,7 @@ export class ManagedText {
       y: top,
       width: Math.max(1, piece.width - 2 * EDGE_MARGIN),
       height: Math.max(1, bottom - top),
+      maxFontSize: maxFontSize(piece),
     };
   }
 
@@ -241,7 +247,7 @@ export class ManagedText {
     box.labelRole = "secondary";
     if (piece.shape === "circle") {
       const bottom = piece.y + piece.height - EDGE_MARGIN;
-      placeCircleText(box, source, piece, bottom, stacked, piece.y + EDGE_MARGIN);
+      placeCircleText(box, source, piece, bottom, stacked, piece.y + EDGE_MARGIN, maxFontSize(piece));
     } else {
       placeFittedText(box, source, this.textArea(piece, false, frames.textLimitY));
     }

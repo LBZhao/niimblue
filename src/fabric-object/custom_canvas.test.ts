@@ -4,7 +4,7 @@ import "$/styles/font.scss";
 // stores and file_utils import each other; load stores first, as the app does.
 import "$/stores";
 import { CustomCanvas } from "$/fabric-object/custom_canvas";
-import { TextboxExt } from "$/fabric-object/textbox-ext";
+import { DEFAULT_TEXT, TextboxExt } from "$/fabric-object/textbox-ext";
 import { configureFabric, THUMBNAIL_HEIGHT } from "$/defaults";
 import { FileUtils } from "$/utils/file_utils";
 import { dateStamp } from "$/utils/label_text_layout";
@@ -62,6 +62,15 @@ const printed = async (props: LabelProps, from: CustomCanvas): Promise<CustomCan
 
 const role = (canvas: CustomCanvas, r: "primary" | "secondary" | "date"): TextboxExt | undefined =>
   canvas.getObjects().find((o): o is TextboxExt => o instanceof TextboxExt && o.labelRole === r);
+
+/** What the on-screen keyboard does: change the hidden field, then Fabric reads it. */
+const type = (box: TextboxExt, text: string) => {
+  const field = box.hiddenTextarea!;
+  field.value = text;
+  field.selectionStart = text.length;
+  field.selectionEnd = text.length;
+  field.dispatchEvent(new InputEvent("input", { bubbles: true }));
+};
 
 /** Box edges from its own size. Fabric's own bounds add an invisible 1 px text stroke. */
 const edges = (o: fabric.FabricObject) => {
@@ -188,6 +197,121 @@ describe("side margin", () => {
     const out = await printed(PLAIN_50x15, editor(PLAIN_50x15, LONG));
     const main = role(out, "primary")!;
     expect(main.calcTextWidth()).toBeLessThanOrEqual(PLAIN_50x15.size.width - 2 * EDGE_MARGIN + 0.5);
+  });
+});
+
+describe("font size cap", () => {
+  const cap = (props: LabelProps) => Math.floor(props.size.height / 3);
+
+  for (const [name, props] of [
+    ["single label", PLAIN_50x15],
+    ["split label", SPLIT],
+  ] as const) {
+    it(`keeps short text at one third of the height: ${name}`, () => {
+      expect(role(editor(props, "Hi"), "primary")!.fontSize).toBe(cap(props));
+    });
+  }
+
+  it("caps the copy on the dot too", () => {
+    expect(role(editor(SPLIT, "Hi"), "secondary")!.fontSize).toBeLessThanOrEqual(cap(SPLIT));
+  });
+
+  it("still shrinks text that does not fit at the cap", () => {
+    const size = role(editor(PLAIN_50x15, "Tetramethylethylenediamine solution in water"), "primary")!.fontSize;
+    expect(size).toBeLessThan(cap(PLAIN_50x15));
+  });
+
+  it("holds on the printed label", async () => {
+    const out = await printed(PLAIN_50x15, editor(PLAIN_50x15, "Hi"));
+    expect(role(out, "primary")!.fontSize).toBe(cap(PLAIN_50x15));
+  });
+
+  it("holds after deleting text while typing", () => {
+    const canvas = editor(PLAIN_50x15, "Tetramethylethylenediamine");
+    const main = role(canvas, "primary")!;
+    main.enterEditing();
+    type(main, "Hi");
+    expect(main.fontSize).toBeLessThanOrEqual(cap(PLAIN_50x15));
+    main.exitEditing();
+  });
+});
+
+describe("placeholder", () => {
+  it("empties the main text and its copy when editing starts", () => {
+    const canvas = editor(SPLIT, "Text");
+    const main = role(canvas, "primary")!;
+    main.enterEditing();
+    expect(main.text).toBe("");
+    expect(main.hiddenTextarea!.value).toBe("");
+    expect(role(canvas, "secondary")!.text).toBe("");
+    main.exitEditing();
+  });
+
+  it("keeps what is typed", () => {
+    const canvas = editor(SPLIT, "Text");
+    const main = role(canvas, "primary")!;
+    main.enterEditing();
+    type(main, "PBS");
+    main.exitEditing();
+    expect(main.text).toBe("PBS");
+    expect(role(canvas, "secondary")!.text).toBe("PBS");
+  });
+
+  it("comes back if nothing is typed, without counting as an edit", () => {
+    const canvas = editor(SPLIT, "Text");
+    const main = role(canvas, "primary")!;
+    let modified = 0;
+    canvas.on("object:modified", () => modified++);
+    main.on("modified", () => modified++);
+    main.enterEditing();
+    main.exitEditing();
+    expect(main.text).toBe("Text");
+    expect(role(canvas, "secondary")!.text).toBe("Text");
+    expect(modified).toBe(0);
+  });
+
+  it("is still saved as the placeholder while the box is empty", () => {
+    const canvas = editor(SPLIT, "Text");
+    const main = role(canvas, "primary")!;
+    main.enterEditing();
+    const saved = canvas.toJSON().objects as unknown as { labelRole?: string; text?: string }[];
+    expect(saved.find((o) => o.labelRole === "primary")?.text).toBe("Text");
+    main.exitEditing();
+  });
+
+  it("uses the translated default words", () => {
+    const main = role(editor(PLAIN_50x15, "Texto"), "primary")!;
+    main.enterEditing();
+    expect(main.text).toBe("");
+    main.exitEditing();
+    expect(main.text).toBe("Texto");
+  });
+
+  it("clears a text box the user added", () => {
+    const canvas = editor(PLAIN_50x15, "Label");
+    const added = new TextboxExt(DEFAULT_TEXT, { width: 100 });
+    canvas.add(added);
+    added.enterEditing();
+    expect(added.text).toBe("");
+    added.exitEditing();
+    expect(added.text).toBe(DEFAULT_TEXT);
+  });
+
+  it("leaves real text alone", () => {
+    const main = role(editor(PLAIN_50x15, "Text"), "primary")!;
+    main.set({ text: "10x TE" });
+    main.enterEditing();
+    expect(main.text).toBe("10x TE");
+    main.exitEditing();
+  });
+
+  it("survives the double tap that selects a word", () => {
+    const main = role(editor(PLAIN_50x15, "Text"), "primary")!;
+    main.enterEditing();
+    expect(() => main.selectWord(0)).not.toThrow();
+    type(main, "A");
+    expect(main.text).toBe("A");
+    main.exitEditing();
   });
 });
 

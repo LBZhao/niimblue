@@ -3,7 +3,14 @@ import * as fabric from "fabric";
 import { TextboxExt } from "$/fabric-object/textbox-ext";
 import type { LabelDate } from "$/types";
 
-export type TextArea = { x: number; y: number; width: number; height: number };
+export type TextArea = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Largest font allowed, even if a bigger one would fit. */
+  maxFontSize?: number;
+};
 
 /** Date formats offered in label properties. The first is the default. */
 export const DATE_FORMATS = ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD", "DD.MM.YYYY", "MMM D, YYYY"];
@@ -117,7 +124,7 @@ const applyCommon = (box: TextboxExt, fontSize: number, width: number) => {
 export const placeFittedText = (box: TextboxExt, text: string, area: TextArea): void => {
   const maxWidth = Math.max(1, area.width);
   const maxHeight = Math.max(1, area.height);
-  largestFont(maxHeight, (fontSize) => {
+  largestFont(Math.min(maxHeight, area.maxFontSize ?? Infinity), (fontSize) => {
     if (box.text !== text) box.set({ text });
     applyCommon(box, fontSize, maxWidth);
     if (box.dynamicMinWidth > maxWidth + 0.5) return false;
@@ -177,6 +184,7 @@ export const placeCircleText = (
   limitBottom: number,
   oneWordPerLine = false,
   limitTop = -Infinity,
+  maxFontSize = Infinity,
 ): void => {
   const radius = Math.min(piece.width, piece.height) / 2;
   const cx = piece.x + piece.width / 2;
@@ -189,7 +197,7 @@ export const placeCircleText = (
 
   let centerY = (top + bottom) / 2;
 
-  largestFont(span, (fontSize) => {
+  largestFont(Math.min(span, maxFontSize), (fontSize) => {
     const lineH = lineBoxHeight(box, fontSize);
     const space = Math.max(measure(box, "n n", fontSize) - 2 * measure(box, "n", fontSize), fontSize * 0.2);
     if (words.length === 0) {

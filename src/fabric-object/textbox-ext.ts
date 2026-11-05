@@ -2,6 +2,9 @@ import * as fabric from "fabric";
 
 export type LabelTextRole = "primary" | "secondary" | "date";
 
+/** Words in a text box the user just added. */
+export const DEFAULT_TEXT = "Text";
+
 interface UniqueTextboxExtProps {
   fontAutoSize: boolean;
   labelRole?: LabelTextRole;
@@ -32,6 +35,8 @@ export class TextboxExt<
   lastLayoutFont?: string;
 
   private widthBeforeEditing?: number;
+  /** The placeholder taken out when editing started, kept while the box stays empty. */
+  private clearedPlaceholder?: string;
 
   constructor(text: string, options?: Props) {
     super(text, options);
@@ -118,6 +123,36 @@ export class TextboxExt<
   override enterEditingImpl() {
     super.enterEditingImpl();
     this.widthBeforeEditing = this.width;
+    if (this.isPlaceholder()) {
+      this.clearedPlaceholder = this.text;
+      this.replaceTextWhileEditing("");
+    }
+  }
+
+  /** Empty again when editing ends: the placeholder comes back, and it never counted as an edit. */
+  override exitEditing() {
+    if (this.isEditing && this.clearedPlaceholder && !this.text) {
+      this.replaceTextWhileEditing(this.clearedPlaceholder);
+    }
+    this.clearedPlaceholder = undefined;
+    return super.exitEditing();
+  }
+
+  /** The default words of a new box. The main text uses the translated ones; "add text" uses DEFAULT_TEXT. */
+  isPlaceholder(): boolean {
+    if (this.labelRole === "secondary" || this.labelRole === "date") return false;
+    const translated = (this.canvas as { defaultLabelText?: string } | undefined)?.defaultLabelText;
+    return this.text === DEFAULT_TEXT || this.text === translated;
+  }
+
+  private replaceTextWhileEditing(text: string) {
+    this.set({ text });
+    this.initDimensions();
+    if (this.hiddenTextarea) this.hiddenTextarea.value = text;
+    this.selectionStart = text.length;
+    this.selectionEnd = text.length;
+    this._updateTextarea();
+    this.canvas?.fire("text:changed", { target: this as unknown as fabric.IText });
   }
 
   override exitEditingImpl() {
@@ -137,6 +172,9 @@ export class TextboxExt<
   override toObject<T extends Omit<Props & fabric.TClassProperties<this>, keyof SProps>, K extends keyof T = never>(
     propertiesToInclude: K[] = [],
   ): Pick<T, K> & SProps {
-    return super.toObject([...propertiesToInclude, ...TEXTBOX_PROPS] as (keyof T)[]);
+    const object: Pick<T, K> & SProps = super.toObject([...propertiesToInclude, ...TEXTBOX_PROPS] as (keyof T)[]);
+    // Previewing or saving before anything is typed still sees the placeholder, not a blank label.
+    if (this.clearedPlaceholder && !this.text) (object as unknown as { text: string }).text = this.clearedPlaceholder;
+    return object;
   }
 }
