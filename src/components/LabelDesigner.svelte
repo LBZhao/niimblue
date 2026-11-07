@@ -584,7 +584,7 @@
 
   <div class="row mb-1">
     <div class="col d-flex justify-content-center">
-      <div class="toolbar d-flex flex-wrap gap-1 justify-content-center align-items-center">
+      <div class="toolbar toolbar-main d-flex flex-wrap gap-1 justify-content-center align-items-center">
         <div class="tool-group" role="group" aria-label="Label">
           <button class="btn btn-sm btn-secondary" onclick={newLabel} title={$tr("editor.new_label")}>
             <MdIcon icon="note_add" />
@@ -617,7 +617,7 @@
           </button>
         </div>
 
-        <div class="tool-group" role="group" aria-label="Insert">
+        <div class="tool-group insert-tools" role="group" aria-label="Insert">
           <ObjectPicker onSubmit={onObjectPicked} {labelProps} {zplImageReady} {pdfImageReady} />
           <IconPicker onSubmit={onIconPicked} onSubmitSvg={onSvgIconPicked} />
           <CsvControl bind:enabled={csvEnabled} onPlaceholderPicked={onCsvPlaceholderPicked} />

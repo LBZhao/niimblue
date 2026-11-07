@@ -114,6 +114,27 @@ body {
   background: var(--bs-tertiary-bg);
 }
 
+/* Phones: two rows of two groups, in columns, so the groups above each other are the same width. */
+@media (max-width: 767.98px) {
+  .toolbar-main {
+    display: grid !important;
+    grid-template-columns: auto auto;
+  }
+
+  .toolbar-main > .tool-group {
+    display: flex;
+  }
+
+  /* The two pickers with a "+" take up the extra width. */
+  .insert-tools > :nth-child(-n + 2) {
+    flex: 1 1 auto;
+  }
+
+  .insert-tools > :nth-child(-n + 2) > .btn {
+    width: 100%;
+  }
+}
+
 /* A label (canvas) with its feed chip at the edge that prints first. */
 .feed-stage {
   display: flex;
