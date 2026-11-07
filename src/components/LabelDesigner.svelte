@@ -333,6 +333,19 @@
     fabricCanvas!.clear();
   };
 
+  /** One tap, no confirm. Undo brings back the previous label. */
+  const newLabel = () => {
+    const canvas = fabricCanvas!;
+    undo.paused = true;
+    discardSelection();
+    csvEnabled = false;
+    // The date shows today again. Its format is a preference, so it stays.
+    onUpdateLabelProps({ ...labelProps, date: { ...labelProps.date, show: true, daysAhead: 0 } });
+    canvas.resetToNewLabel();
+    undo.paused = false;
+    undo.push(canvas, labelProps);
+  };
+
   const toggleGrid = () => {
     const newVal = !$appConfig.gridEnabled;
     appConfig.update((cfg) => ({ ...cfg, gridEnabled: newVal }));
@@ -573,7 +586,9 @@
     <div class="col d-flex justify-content-center">
       <div class="toolbar d-flex flex-wrap gap-1 justify-content-center align-items-center">
         <div class="tool-group" role="group" aria-label="Label">
-          <LabelPropsEditor {labelProps} onChange={onUpdateLabelProps} />
+          <button class="btn btn-sm btn-secondary" onclick={newLabel} title={$tr("editor.new_label")}>
+            <MdIcon icon="note_add" />
+          </button>
           <SavedLabelsMenu
             canvas={fabricCanvas!}
             onRequestLabelTemplate={exportCurrentLabel}
@@ -582,6 +597,7 @@
           <button class="btn btn-sm btn-secondary" onclick={clearCanvas} title={$tr("editor.clear")}>
             <MdIcon icon="cancel_presentation" />
           </button>
+          <LabelPropsEditor {labelProps} onChange={onUpdateLabelProps} />
         </div>
 
         <div class="tool-group" role="group" aria-label="History">

@@ -1,3 +1,4 @@
+import { OBJECT_DEFAULTS_TEXT } from "$/defaults";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import * as fabric from "fabric";
 import "$/styles/font.scss";
@@ -312,6 +313,45 @@ describe("placeholder", () => {
     type(main, "A");
     expect(main.text).toBe("A");
     main.exitEditing();
+  });
+});
+
+describe("new label", () => {
+  const texts = (canvas: CustomCanvas) => canvas.getObjects().map((o) => (o as TextboxExt).labelRole);
+
+  it("leaves only the default text and date on a single label, on the same paper", () => {
+    const canvas = editor(PLAIN_50x15, "Text");
+    role(canvas, "primary")!.set({ text: "10x TE", fontFamily: "Barlow Semi Condensed" });
+    canvas.add(new fabric.Rect({ width: 20, height: 20 }));
+    canvas.resetToNewLabel();
+    expect(texts(canvas).sort()).toEqual(["date", "primary"]);
+    expect(role(canvas, "primary")!.text).toBe("Text");
+    expect(role(canvas, "primary")!.fontFamily).toBe(OBJECT_DEFAULTS_TEXT.fontFamily);
+    expect(canvas.getLabelProps().size).toEqual(PLAIN_50x15.size);
+  });
+
+  it("keeps the copy on a split label", () => {
+    const canvas = editor(SPLIT, "Text");
+    role(canvas, "primary")!.set({ text: "PBS" });
+    canvas.layoutManagedText("all");
+    canvas.resetToNewLabel();
+    expect(texts(canvas).sort()).toEqual(["date", "primary", "secondary"]);
+    expect(role(canvas, "secondary")!.text).toBe("Text");
+  });
+
+  it("ends editing, and the new text is a placeholder that clears", () => {
+    const canvas = editor(PLAIN_50x15, "Text");
+    const old = role(canvas, "primary")!;
+    canvas.setActiveObject(old);
+    old.enterEditing();
+    type(old, "PBS");
+    canvas.resetToNewLabel();
+    expect(old.isEditing).toBe(false);
+    const fresh = role(canvas, "primary")!;
+    expect(fresh).not.toBe(old);
+    fresh.enterEditing();
+    expect(fresh.text).toBe("");
+    fresh.exitEditing();
   });
 });
 

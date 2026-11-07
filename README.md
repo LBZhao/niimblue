@@ -10,6 +10,7 @@ Tested on a **NIIMBOT M2_H** (300 dpi, 36.5 × 9.5 mm split labels: a 25 mm roun
 
 - **Split labels with a dot**: a main piece and a second piece can each be a rectangle, rounded rectangle or circle. The main text, a copy for the dot and today's date are fitted automatically. Short names (one or two words) are stacked one word per line in the dot, and wrapped words never run into the date.
 - **Editor**: the gap between split pieces shows as a 1 mm strip with a dashed line, and the label zooms to fit the phone's screen width.
+- **New label**: a button at the start of the toolbar starts over with just the text box and today's date, on the same paper. Undo brings the old label back.
 - **Default text**: the fitted text is capped at one third of the label's height, and the placeholder "Text" clears as soon as you start editing it (it comes back if you type nothing).
 - **Label fonts**: Barlow Semi Condensed, Roboto Condensed, IBM Plex Sans Condensed and Atkinson Hyperlegible Next are bundled for offline use. Changing the main font also updates the dot and the date.
 - **Recently printed**: every printed label is listed under the toolbar, once each (reprints and date changes don't add copies); tap one to load it (Undo restores the previous label). Saved and imported labels always print with today's date.

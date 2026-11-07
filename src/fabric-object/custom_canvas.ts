@@ -685,6 +685,13 @@ export class CustomCanvas extends fabric.Canvas {
     return this.customBackground && !this.capturingThumbnail && !this.suspendManagedLayout && !this.layoutQuiet;
   }
 
+  /** Start over on the same paper: only the default text, its copy on a split label, and the date. */
+  resetToNewLabel() {
+    this.discardActiveObject();
+    this.remove(...this.getObjects());
+    this.layoutManagedText("all");
+  }
+
   /**
    * Fit the primary text, the split copy, and the bottom date.
    * "primary" refits the main box and the copy. "secondary" refits only the copy.
