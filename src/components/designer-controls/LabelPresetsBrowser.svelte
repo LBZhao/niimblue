@@ -3,11 +3,14 @@
   import { tr } from "$/utils/i18n";
   import MdIcon from "$/components/basic/MdIcon.svelte";
   import { LABEL_CORNER_RADIUS_MM } from "$/defaults";
+  import { appConfirm } from "$/stores/confirm";
 
   interface Props {
     onItemSelected: (index: number) => void;
     onItemDelete: (index: number) => void;
+    onItemExport?: (index: number) => void;
     presets: LabelPreset[];
+    selectedIndex?: number;
     class?: string;
   }
 
@@ -20,7 +23,8 @@
     radius: number;
   };
 
-  let { class: className = "", onItemDelete, onItemSelected, presets }: Props = $props();
+  let { class: className = "", onItemDelete, onItemExport, onItemSelected, presets, selectedIndex = -1 }: Props =
+    $props();
   /** Edit mode shows a large delete button on each tile and stops taps from applying presets. */
   let editing = $state<boolean>(false);
 
@@ -99,16 +103,24 @@ return { width, height, pieces, tail: tailRect, radius: cornerRadius(preset) };
     onItemSelected(idx);
   };
 
-  const deleteClicked = (e: MouseEvent, idx: number) => {
+  const deleteClicked = async (e: MouseEvent, idx: number) => {
     e.stopPropagation();
     const name = presetName(presets[idx]);
-    if (!confirm($tr("params.label.presets.delete.confirm").replace("{name}", name))) return;
+    const answer = await appConfirm({
+      title: $tr("params.label.presets.delete.confirm").replace("{name}", name),
+      buttons: ["yes", "no"],
+    });
+    if (answer !== "yes") return;
     onItemDelete(idx);
     if (presets.length <= 1) editing = false;
   };
 
+  const exportClicked = (e: MouseEvent, idx: number) => {
+    e.stopPropagation();
+    onItemExport?.(idx);
+  };
+
   const toggleEditing = (e: MouseEvent) => {
-    // Keep the label properties dropdown open.
     e.stopPropagation();
     editing = !editing;
   };
@@ -130,6 +142,7 @@ return { width, height, pieces, tail: tailRect, radius: cornerRadius(preset) };
         role="button"
         class="preset-tile btn btn-outline-secondary p-1 d-flex flex-column align-items-center"
         class:editing
+        class:selected={selectedIndex === idx}
         tabindex="0"
         title={presetName(item)}
         onkeydown={() => onTileClick(idx)}
@@ -160,13 +173,24 @@ return { width, height, pieces, tail: tailRect, radius: cornerRadius(preset) };
         {/if}
 
         {#if editing}
-          <button
-            class="btn btn-danger delete-preset"
-            title={$tr("params.label.presets.delete")}
-            aria-label={$tr("params.label.presets.delete")}
-            onclick={(e) => deleteClicked(e, idx)}>
-            <MdIcon icon="delete" />
-          </button>
+          <div class="tile-actions d-flex gap-2">
+            {#if onItemExport}
+              <button
+                class="btn btn-primary"
+                title={$tr("params.label.export")}
+                aria-label={$tr("params.label.export")}
+                onclick={(e) => exportClicked(e, idx)}>
+                <MdIcon icon="download" />
+              </button>
+            {/if}
+            <button
+              class="btn btn-danger"
+              title={$tr("params.label.presets.delete")}
+              aria-label={$tr("params.label.presets.delete")}
+              onclick={(e) => deleteClicked(e, idx)}>
+              <MdIcon icon="delete" />
+            </button>
+          </div>
         {/if}
       </div>
     {/each}
@@ -244,12 +268,20 @@ return { width, height, pieces, tail: tailRect, radius: cornerRadius(preset) };
     cursor: default;
   }
 
-  /* At least 44 px so it is easy to hit on a phone. Sits on the shape so the name stays readable. */
-  .delete-preset {
+  .preset-tile.selected {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+  }
+
+  /* At least 44 px so they are easy to hit on a phone. Sit on the shape so the name stays readable. */
+  .tile-actions {
     position: absolute;
     top: 42px;
     left: 50%;
     transform: translate(-50%, -50%);
+  }
+
+  .tile-actions > button {
     width: 48px;
     height: 48px;
     border-radius: 50%;

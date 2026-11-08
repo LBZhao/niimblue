@@ -5,6 +5,7 @@
   import MdIcon from "$/components/basic/MdIcon.svelte";
   import FontFamilyPicker from "$/components/designer-controls/FontFamilyPicker.svelte";
   import { TextboxExt } from "$/fabric-object/textbox-ext";
+  import { appPrompt } from "$/stores/prompt";
 
   interface Props {
     selectedText: fabric.IText;
@@ -80,6 +81,12 @@
     valueUpdated();
   };
 
+  const characterSpacingChange = (v: number) => {
+    v = isNaN(v) ? 1 : v;
+    selectedText.set({ charSpacing: v });
+    valueUpdated();
+  };
+
   const fontSizeChange = (v: number) => {
     v = isNaN(v) ? 1 : Math.min(Math.max(v, sizeMin), sizeMax);
     selectedText.set({ fontSize: v });
@@ -103,13 +110,20 @@
     valueUpdated();
   };
 
-  const editInPopup = () => {
+  const editInPopup = async () => {
     const placeholder = selectedText instanceof TextboxExt && selectedText.isPlaceholder();
-    const text = prompt($tr("params.text.edit.title"), placeholder ? "" : selectedText.text);
+    const text = await appPrompt({
+      title: $tr("params.text.edit.title"),
+      defaultValue: placeholder ? "" : selectedText.text,
+      multiline: true,
+    });
+
     // Leaving the placeholder's empty field blank is not an edit.
     if (text !== null && (text || !placeholder)) {
       selectedText.set({ text });
       selectedText.isEditing = false;
+      // Same as typing: the label refits the main text and its copy on the second piece.
+      selectedText.canvas?.fire("text:changed", { target: selectedText });
       valueUpdated();
     }
   };
@@ -275,6 +289,18 @@
     class="form-control"
     value={selectedText.lineHeight}
     oninput={(e) => lineHeightChange(e.currentTarget.valueAsNumber)} />
+</div>
+
+<div class="input-group flex-nowrap input-group-sm">
+  <span class="input-group-text" title={$tr("params.text.character_spacing")}>
+    <MdIcon icon="swap_horiz" />
+  </span>
+  <input
+    type="number"
+    step="100"
+    class="form-control"
+    value={selectedText.charSpacing}
+    oninput={(e) => characterSpacingChange(e.currentTarget.valueAsNumber)} />
 </div>
 
 </div>

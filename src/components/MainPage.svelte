@@ -4,8 +4,10 @@
   import LabelDesigner from "$/components/LabelDesigner.svelte";
   import PrinterConnector from "$/components/PrinterConnector.svelte";
   import { locale, locales, tr } from "$/utils/i18n";
-  import DebugStuff from "$/components/DebugStuff.svelte";
+  import DebugStuff from "$/components/dialogs/DebugStuff.svelte";
   import MdIcon from "$/components/basic/MdIcon.svelte";
+  import AppPrompt from "$/components/dialogs/AppPrompt.svelte";
+  import AppConfirm from "./dialogs/AppConfirm.svelte";
 
   // eslint-disable-next-line no-undef
   const appCommit = __APP_COMMIT__;
@@ -77,6 +79,10 @@
 {#if debugStuffShow}
   <DebugStuff bind:show={debugStuffShow} />
 {/if}
+
+<AppPrompt />
+
+<AppConfirm />
 
 <style>
   .niim {

@@ -4,6 +4,7 @@
   import MdIcon from "$/components/basic/MdIcon.svelte";
   import { recentPrintName } from "$/utils/recent_prints";
   import { Capacitor } from "@capacitor/core";
+  import { appConfirm } from "$/stores/confirm";
 
   interface Props {
     onItemClicked: (index: number) => void;
@@ -27,10 +28,14 @@
     onItemClicked(idx);
   };
 
-  const deleteClicked = (e: MouseEvent, idx: number) => {
+  const deleteClicked = async (e: MouseEvent, idx: number) => {
     e.stopPropagation();
     const name = recentPrintName(labels[idx]);
-    if (!confirm($tr("params.saved_labels.delete.confirm").replace("{name}", name))) return;
+    const answer = await appConfirm({
+      title: $tr("params.saved_labels.delete.confirm").replace("{name}", name),
+      buttons: ["yes", "no"],
+    });
+    if (answer !== "yes") return;
     onItemDelete(idx);
     if (labels.length <= 1) editing = false;
   };
@@ -41,7 +46,6 @@
   };
 
   const toggleEditing = (e: MouseEvent) => {
-    // Keep the save/load dropdown open.
     e.stopPropagation();
     editing = !editing;
   };

@@ -3,7 +3,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import * as fabric from "fabric";
 import "$/styles/font.scss";
 // stores and file_utils import each other; load stores first, as the app does.
-import "$/stores";
+import "$/stores/app";
 import { CustomCanvas } from "$/fabric-object/custom_canvas";
 import { DEFAULT_TEXT, TextboxExt } from "$/fabric-object/textbox-ext";
 import { configureFabric, THUMBNAIL_HEIGHT } from "$/defaults";

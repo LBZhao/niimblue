@@ -26,6 +26,14 @@ export const FabricObjectSchema = z.custom<fabric.FabricObject>((val: any): bool
   return typeof val === "object";
 });
 
+/** Moves the print by printer pixels: x to the right, y down (as the preview shows it). */
+export const PreviewPropsOffsetSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  /** No longer used: saved settings from the old Inner/Outer menu still load. */
+  offsetType: z.enum(["inner", "outer"]).optional(),
+});
+
 /** The date printed under the main text. */
 export const LabelDateSchema = z.object({
   /** Defaults to true. */
@@ -59,6 +67,7 @@ export const LabelPropsSchema = z.object({
   /** Dots per mm the label was sized with. Older labels do not have it. */
   dpmm: z.number().positive().optional(),
   date: LabelDateSchema.optional(),
+  offset: PreviewPropsOffsetSchema.optional(),
 });
 
 export const LabelPresetSchema = z.object({
@@ -82,6 +91,7 @@ export const LabelPresetSchema = z.object({
   tailPos: z.enum(["right", "bottom", "left", "top"]).default("right").optional(),
   tailLength: z.number().default(0).optional(),
   mirror: z.enum(["none", "copy", "flip"]).default("none").optional(),
+  offset: PreviewPropsOffsetSchema.optional(),
 });
 
 export const FabricJsonSchema = z.object({
@@ -101,14 +111,6 @@ export const ExportedLabelTemplateSchema = z.object({
 
 const [firstTask, ...otherTasks] = printTaskNames;
 
-/** Moves the print by printer pixels: x to the right, y down (as the preview shows it). */
-export const PreviewPropsOffsetSchema = z.object({
-  x: z.number(),
-  y: z.number(),
-  /** No longer used: saved settings from the old Inner/Outer menu still load. */
-  offsetType: z.enum(["inner", "outer"]).optional(),
-});
-
 const PostProcessTypeSchema = z.enum([
   "threshold",
   "threshold_rb",
@@ -119,15 +121,22 @@ const PostProcessTypeSchema = z.enum([
   "floyd_steinberg",
   "jjn",
   "stucki",
+  "screentone",
+  "grayscale",
 ]);
 
 export const PreviewPropsSchema = z.object({
   postProcess: PostProcessTypeSchema.optional(),
   postProcessInvert: z.boolean().optional(),
+  postProcessMirror: z.boolean().optional(),
   threshold: z.number().gte(1).lte(255).optional(),
   thresholdRed: z.number().gte(1).lte(255).optional(),
   strength: z.number().gte(0).lte(1.5).optional(),
   serpentine: z.boolean().optional(),
+  screentoneAngle: z.number().gte(0).lte(365).optional(),
+  screentoneDotSize: z.number().gte(1).optional(),
+  contrast: z.number().gte(0).lte(127).optional(),
+  brightness: z.number().gte(0).lte(255).optional(),
   quantity: z.number().gte(1).optional(),
   density: z.number().gte(1).optional(),
   speed: z.union([z.literal(0), z.literal(1)]).optional(),
@@ -151,6 +160,7 @@ export const AppConfigSchema = z.object({
   iconListMode: z.enum(["user", "pack", "both"]),
   packetIntervalMs: z.number().gte(0).optional(),
   gridEnabled: z.boolean().optional(),
+  savedLabelsSortMode: z.enum(["date_desc", "date_asc", "title_asc", "title_desc"]).optional(),
 });
 
 /** The printer last connected over Bluetooth in the app. */
@@ -187,3 +197,5 @@ export type AutomationProps = z.infer<typeof AutomationPropsSchema>;
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 export type UserFont = z.infer<typeof UserFontSchema>;
 export type LastPrinter = z.infer<typeof LastPrinterSchema>;
+
+export const previewPropsKeys = Object.keys(PreviewPropsSchema.shape) as (keyof PreviewProps)[];

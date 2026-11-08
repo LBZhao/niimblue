@@ -13,9 +13,10 @@
     connectedPrinterName,
     connectionState,
     csvData,
+    dimensionsUpdateRequest,
     loadedFonts,
     printerMeta,
-  } from "$/stores";
+  } from "$/stores/app";
   import {
     type ExportedLabelTemplate,
     type FabricJson,
@@ -30,20 +31,20 @@
   import { Toasts } from "$/utils/toasts";
   import { UndoRedo, type UndoState } from "$/utils/undo_redo";
   import BarcodeParamsPanel from "$/components/designer-controls/BarcodeParamsControls.svelte";
-  import CsvControl from "$/components/designer-controls/CsvControl.svelte";
+  import CsvControl from "$/components/dialogs/CsvControl.svelte";
   import GenericObjectParamsControls from "$/components/designer-controls/GenericObjectParamsControls.svelte";
-  import IconPicker from "$/components/designer-controls/IconPicker.svelte";
-  import LabelPropsEditor from "$/components/designer-controls/LabelPropsEditor.svelte";
+  import IconPicker from "$/components/dialogs/IconPicker.svelte";
+  import LabelPropsEditor from "$/components/dialogs/LabelPropsEditor.svelte";
   import MdIcon from "$/components/basic/MdIcon.svelte";
-  import ObjectPicker from "$/components/designer-controls/ObjectPicker.svelte";
-  import PrintPreview from "$/components/PrintPreview.svelte";
+  import ObjectPicker from "$/components/dialogs/ObjectPicker.svelte";
+  import PrintPreview from "$/components/dialogs/PrintPreview.svelte";
   import ArUcoParamsPanel from "$/components/designer-controls/ArUcoParamsControls.svelte";
   import QrCodeParamsPanel from "$/components/designer-controls/QRCodeParamsControls.svelte";
   import TextParamsControls from "$/components/designer-controls/TextParamsControls.svelte";
   import VariableInsertControl from "$/components/designer-controls/VariableInsertControl.svelte";
   import { DEFAULT_LABEL_PROPS, GRID_SIZE, OBJECT_DEFAULTS, RECENT_THUMBNAIL_HEIGHT } from "$/defaults";
   import { LabelDesignerUtils } from "$/utils/label_designer_utils";
-  import SavedLabelsMenu from "$/components/designer-controls/SavedLabelsMenu.svelte";
+  import SavedLabelsMenu from "$/components/dialogs/SavedLabelsMenu.svelte";
   import { CustomCanvas } from "$/fabric-object/custom_canvas";
   import VectorParamsControls from "$/components/designer-controls/VectorParamsControls.svelte";
   import { CanvasUtils } from "$/utils/canvas_utils";
@@ -52,13 +53,16 @@
   import FeedChip from "$/components/basic/FeedChip.svelte";
   import { historyFileName, rememberPrintedLabel } from "$/utils/recent_prints";
   import { z } from "zod";
+  import { appConfirm } from "$/stores/confirm";
+
+  type DialogName = "none" | "preview" | "label_props" | "saved_labels" | "csv_props" | "icon_picker" | "object_picker";
 
   let htmlCanvas: HTMLCanvasElement;
   let canvasColumn: HTMLDivElement;
+  let currentDialog = $state<DialogName>("none");
 
   let fabricCanvas = $state<CustomCanvas>();
   let labelProps = $state<LabelProps>(DEFAULT_LABEL_PROPS);
-  let previewOpened = $state<boolean>(false);
   let selectedObject = $state<fabric.FabricObject | undefined>(undefined);
   let selectedCount = $state<number>(0);
   let editRevision = $state<number>(0);
@@ -67,6 +71,7 @@
   let windowWidth = $state<number>(0);
   let undoState = $state<UndoState>({ undoDisabled: false, redoDisabled: false });
   let zoomText = $state<string>("100%");
+  let hasUnsavedChanges = $state<boolean>(false);
 
   const undo = new UndoRedo();
 
@@ -93,7 +98,11 @@
     undo.paused = false;
   };
 
-  undo.onLabelUpdate = loadLabelData;
+  undo.onLabelUpdate = async (data) => {
+    await loadLabelData(data);
+    hasUnsavedChanges = true;
+  };
+
   undo.onStateUpdate = (state: UndoState) => {
     undoState = state;
   };
@@ -110,6 +119,8 @@
   const moveSelected = (direction: MoveDirection, ctrl?: boolean) => {
     LabelDesignerUtils.moveSelection(fabricCanvas!, direction, ctrl);
     undo.push(fabricCanvas!, labelProps);
+    // refresh the position inputs
+    editRevision++;
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -183,6 +194,7 @@
 
   const onUpdateLabelProps = (newProps: LabelProps) => {
     labelProps = newProps;
+    hasUnsavedChanges = true;
     fabricCanvas!.setDimensions(labelProps.size);
     fabricCanvas!.setLabelProps(labelProps);
     fitZoomToScreen();
@@ -194,12 +206,24 @@
     }
   };
 
+  const updateDimensions = (width: number, height: number) => {
+    let newProps = { ...labelProps, size: { width, height } };
+    onUpdateLabelProps(newProps);
+  };
+
   const exportCurrentLabel = (): ExportedLabelTemplate => {
     return FileUtils.makeExportedLabel(fabricCanvas!, labelProps, csvEnabled);
   };
 
   const onLoadRequested = (label: ExportedLabelTemplate) => {
-    return loadLabelData(label).then(() => undo.push(fabricCanvas!, labelProps));
+    return loadLabelData(label).then(() => {
+      undo.push(fabricCanvas!, labelProps);
+      hasUnsavedChanges = false;
+    });
+  };
+
+  const onSave = () => {
+    hasUnsavedChanges = false;
   };
 
   /** One tap, no confirm. Undo brings back the previous label. */
@@ -269,12 +293,12 @@
 
   const openPreview = () => {
     printNow = false;
-    previewOpened = true;
+    currentDialog = "preview";
   };
 
   const openPreviewAndPrint = () => {
     printNow = true;
-    previewOpened = true;
+    currentDialog = "preview";
   };
 
   const controlValueUpdated = () => {
@@ -325,12 +349,16 @@
     }
   };
 
-  const clearCanvas = () => {
-    if (!confirm($tr("editor.clear.confirm"))) {
-      return;
+  const clearCanvas = async () => {
+    const result = await appConfirm({
+      title: $tr("editor.clear.confirm"),
+      buttons: ["yes", "no"],
+    });
+
+    if (result === "yes") {
+      undo.push(fabricCanvas!, labelProps);
+      fabricCanvas!.clear();
     }
-    undo.push(fabricCanvas!, labelProps);
-    fabricCanvas!.clear();
   };
 
   /** One tap, no confirm. Undo brings back the previous label. */
@@ -356,7 +384,16 @@
     try {
       const urlTemplate = await FileUtils.readLabelFromUrl();
 
-      if (urlTemplate !== null && confirm($tr("params.saved_labels.load.url.warn"))) {
+      if (urlTemplate === null) {
+        return false;
+      }
+
+      const confirmResult = await appConfirm({
+        title: $tr("params.saved_labels.load.url.warn"),
+        buttons: ["yes", "no"],
+      });
+
+      if (confirmResult === "yes") {
         await onLoadRequested(urlTemplate);
         Toasts.message($tr("params.saved_labels.load.url.loaded"));
         return true;
@@ -427,8 +464,10 @@
     }
 
     window.addEventListener("hashchange", loadLabelFromUrl);
+    window.addEventListener("beforeunload", warnBeforeUnload);
 
     undo.push(fabricCanvas, labelProps);
+    hasUnsavedChanges = false;
 
     // force close dropdowns on touch devices
     fabricCanvas.on("mouse:down", (): void => {
@@ -438,23 +477,32 @@
 
     fabricCanvas.on("object:moving", (e): void => {
       if (e.target && e.target.left !== undefined && e.target.top !== undefined) {
+        // Snap to the grid only when the grid is shown; otherwise move in whole pixels.
+        const step = $appConfig.gridEnabled ? GRID_SIZE : 1;
         e.target.set({
-          left: Math.round(e.target.left / GRID_SIZE) * GRID_SIZE,
-          top: Math.round(e.target.top / GRID_SIZE) * GRID_SIZE,
+          left: Math.round(e.target.left / step) * step,
+          top: Math.round(e.target.top / step) * step,
         });
       }
     });
 
     fabricCanvas.on("object:modified", (): void => {
+      hasUnsavedChanges = true;
       undo.push(fabricCanvas!, labelProps);
     });
 
+    fabricCanvas.on("object:added", (): void => {
+      hasUnsavedChanges = true;
+    });
+
     fabricCanvas.on("text:changed", () => {
+      hasUnsavedChanges = true;
       editRevision++;
     });
 
     fabricCanvas.on("object:removed", (): void => {
       if (fabricCanvas?.layoutQuiet) return;
+      hasUnsavedChanges = true;
       undo.push(fabricCanvas!, labelProps);
     });
 
@@ -510,8 +558,6 @@
       CanvasUtils.fixFabricObjectScale(e.target);
     });
 
-    // userFonts.subscribe((e) => {console.log(e); renderOnFontsChanged();});
-
     if ($automation !== undefined) {
       if ($automation.startPrint !== undefined) {
         if ($automation.startPrint === "immediately") {
@@ -528,9 +574,24 @@
     }
   });
 
+  const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (!hasUnsavedChanges) return;
+    event.preventDefault();
+    event.returnValue = "";
+  };
+
+  onMount(() =>
+    dimensionsUpdateRequest.subscribe((req) => {
+      if (req) {
+        updateDimensions(req.width, req.height);
+      }
+    }),
+  );
+
   onDestroy(() => {
     fabricCanvas!.dispose();
     window.removeEventListener("hashchange", loadLabelFromUrl);
+    window.removeEventListener("beforeunload", warnBeforeUnload);
   });
 
   $effect(() => {
@@ -550,7 +611,7 @@
   });
 
   $effect(() => {
-    if (!previewOpened) {
+    if (currentDialog !== "preview") {
       printNow = false;
     }
   });
@@ -589,15 +650,21 @@
           <button class="btn btn-sm btn-secondary" onclick={newLabel} title={$tr("editor.new_label")}>
             <MdIcon icon="note_add" />
           </button>
-          <SavedLabelsMenu
-            canvas={fabricCanvas!}
-            onRequestLabelTemplate={exportCurrentLabel}
-            {onLoadRequested}
-            {csvEnabled} />
+          <button
+            class="btn btn-sm btn-secondary"
+            onclick={() => (currentDialog = "saved_labels")}
+            title={$tr("params.saved_labels.menu_title")}>
+            <MdIcon icon="sd_storage" />
+          </button>
           <button class="btn btn-sm btn-secondary" onclick={clearCanvas} title={$tr("editor.clear")}>
             <MdIcon icon="cancel_presentation" />
           </button>
-          <LabelPropsEditor {labelProps} onChange={onUpdateLabelProps} />
+          <button
+            class="btn btn-sm btn-secondary"
+            onclick={() => (currentDialog = "label_props")}
+            title={$tr("params.label.menu_title")}>
+            <MdIcon icon="settings" />
+          </button>
         </div>
 
         <div class="tool-group" role="group" aria-label="History">
@@ -618,9 +685,26 @@
         </div>
 
         <div class="tool-group insert-tools" role="group" aria-label="Insert">
-          <ObjectPicker onSubmit={onObjectPicked} {labelProps} {zplImageReady} {pdfImageReady} />
-          <IconPicker onSubmit={onIconPicked} onSubmitSvg={onSvgIconPicked} />
-          <CsvControl bind:enabled={csvEnabled} onPlaceholderPicked={onCsvPlaceholderPicked} />
+          <button
+            class="btn btn-sm btn-secondary"
+            title={$tr("editor.objectpicker.title")}
+            onclick={() => (currentDialog = "object_picker")}>
+            <MdIcon icon="format_shapes" />
+            <MdIcon icon="add" />
+          </button>
+          <button
+            class="btn btn-sm btn-secondary"
+            title={$tr("editor.iconpicker.title")}
+            onclick={() => (currentDialog = "icon_picker")}>
+            <MdIcon icon="emoji_emotions" />
+            <MdIcon icon="add" />
+          </button>
+          <button
+            class="btn btn-sm btn-{csvEnabled ? 'primary' : 'secondary'}"
+            title={$tr("params.csv.title")}
+            onclick={() => (currentDialog = "csv_props")}>
+            <MdIcon icon="dataset" />
+          </button>
         </div>
 
         <div class="tool-group" role="group" aria-label="View">
@@ -698,9 +782,7 @@
         {#if selectedObject instanceof Barcode}
           <div class="tool-group" role="group" aria-label="Barcode">
             <BarcodeParamsPanel selectedBarcode={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
-            {#if selectedObject.encoding === "CODE128B"}
-              <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
-            {/if}
+            <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
           </div>
         {/if}
       </div>
@@ -714,15 +796,40 @@
     </div>
   </div>
 
-  {#if previewOpened}
+  {#if currentDialog === "preview"}
     <PrintPreview
-      bind:show={previewOpened}
+      onClose={() => (currentDialog = "none")}
       canvasCallback={getCanvasForPreview}
       {labelProps}
       {printNow}
       {csvEnabled}
       csvData={$csvData.data}
       {onPrinted} />
+  {:else if currentDialog === "label_props"}
+    <LabelPropsEditor onClose={() => (currentDialog = "none")} onChange={onUpdateLabelProps} {labelProps} />
+  {:else if currentDialog === "saved_labels"}
+    <SavedLabelsMenu
+      onClose={() => (currentDialog = "none")}
+      {onSave}
+      canvas={fabricCanvas!}
+      onRequestLabelTemplate={exportCurrentLabel}
+      {onLoadRequested}
+      {csvEnabled}
+      {hasUnsavedChanges} />
+  {:else if currentDialog === "csv_props"}
+    <CsvControl
+      onClose={() => (currentDialog = "none")}
+      bind:enabled={csvEnabled}
+      onPlaceholderPicked={onCsvPlaceholderPicked} />
+  {:else if currentDialog === "icon_picker"}
+    <IconPicker onSubmit={onIconPicked} onSubmitSvg={onSvgIconPicked} onClose={() => (currentDialog = "none")} />
+  {:else if currentDialog === "object_picker"}
+    <ObjectPicker
+      onSubmit={onObjectPicked}
+      onClose={() => (currentDialog = "none")}
+      {labelProps}
+      {zplImageReady}
+      {pdfImageReady} />
   {/if}
 </div>
 

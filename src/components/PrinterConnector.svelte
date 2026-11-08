@@ -1,7 +1,9 @@
 <script lang="ts">
   import {
+  AutoShutdownTime,
     LabelType,
     NiimbotCapacitorBleClient,
+    ResolutionClass,
     SoundSettingsItemType,
     Utils,
     type AvailableTransports,
@@ -18,7 +20,8 @@
     automation,
     rfidInfo,
     lastPrinter,
-  } from "$/stores";
+    dimensionsUpdateRequest,
+  } from "$/stores/app";
   import type { ConnectionType } from "$/types";
   import { tr, type TranslationKey } from "$/utils/i18n";
   import MdIcon from "$/components/basic/MdIcon.svelte";
@@ -27,7 +30,7 @@
   import { LocalStoragePersistence } from "$/utils/persistence";
   import type { MaterialIcon } from "material-icons";
   import FirmwareUpdater from "$/components/basic/FirmwareUpdater.svelte";
-  import PrinterVerboseInfo from "$/components/PrinterVerboseInfo.svelte";
+  import PrinterVerboseInfo from "$/components/dialogs/PrinterVerboseInfo.svelte";
   import PrinterPicker from "$/components/basic/PrinterPicker.svelte";
 
   let connectionType = $state<ConnectionType>("bluetooth");
@@ -121,6 +124,30 @@
     return "battery_0_bar";
   };
 
+  const applyDimensionsClicked = () => {
+    const paper = $rfidInfo.paperInfo;
+    let dpmm = 8;
+
+    if ($printerInfo.resolutionClass !== undefined) {
+      dpmm = $printerInfo.resolutionClass === ResolutionClass.DPI300 ? 11.81 : 0;
+    } else if ($printerInfo.capabilities?.printheadDpi !== undefined) {
+      dpmm = $printerInfo.capabilities?.printheadDpi === 300 ? 11.81 : 0;
+    }
+
+    if (paper?.paperWidth !== undefined && paper?.paperHeight !== undefined) {
+      let width = Math.floor(paper.paperWidth * dpmm);
+      let height = Math.floor(paper.paperHeight * dpmm);
+
+      if ($printerInfo.printheadWidth !== undefined && width > $printerInfo.printheadWidth) {
+        width = $printerInfo.printheadWidth;
+      }
+
+      width -= width % 8;
+
+      dimensionsUpdateRequest.set({ width, height }); // todo: print direction?
+    }
+  };
+
   onMount(() => {
     featureSupport = Utils.getAvailableTransports();
 
@@ -149,7 +176,7 @@
 
 <div class="input-group w-auto input-group-sm flex-nowrap justify-content-end">
   {#if $connectionState === "connected"}
-    <button class="btn btn-secondary" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+    <button class="btn btn-secondary" data-bs-toggle="dropdown" data-bs-auto-close="false">
       <MdIcon icon="settings" />
     </button>
 
@@ -199,6 +226,9 @@
             <div class="px-1 bg-light-subtle border-end">{$tr("connector.rfid.dimensions")}</div>
             <div class="px-1 flex-grow-1 text-center">
               {$rfidInfo.paperInfo.paperWidth}x{$rfidInfo.paperInfo.paperHeight}mm
+              <button class="btn text-info set-dim-button" onclick={applyDimensionsClicked}>
+                <MdIcon icon="aspect_ratio" />
+              </button>
             </div>
           </div>
         {/if}
@@ -270,6 +300,18 @@
           <label class="form-check-label" for="auto-connect-switch">{$tr("connector.settings.auto_connect")}</label>
         </div>
       {/if}
+
+      <div class="input-group input-group-sm mt-1">
+        <span class="input-group-text ">{$tr("connector.settings.auto_shutdown")}</span>
+        <select class="form-select form-select-sm" value={ $printerInfo.settings.autoShutdownTime} onchange={(e) =>
+            $printerClient.setAutoShutdownTime(Number(e.currentTarget.value))}>
+          <option value={AutoShutdownTime.ShutdownTime1}>15 {$tr("connector.settings.auto_shutdown.min")}</option>
+          <option value={AutoShutdownTime.ShutdownTime2}>30 {$tr("connector.settings.auto_shutdown.min")}</option>
+          <option value={AutoShutdownTime.ShutdownTime3}>45 / 60 {$tr("connector.settings.auto_shutdown.min")}</option>
+          <option value={AutoShutdownTime.ShutdownTime4}>60 / ∞ {$tr("connector.settings.auto_shutdown.min")}</option>
+        </select>
+      </div>
+
 
       <button class="btn btn-sm btn-outline-secondary w-100 mt-3" onclick={() => (verboseInfoShow = true)}
         >{$tr("connector.open_verbose")}</button>
@@ -382,5 +424,11 @@
   .dropdown-menu {
     width: 100vw;
     max-width: 300px;
+  }
+
+  .set-dim-button {
+    padding: 0 0.3rem;
+    font-size: 0.875rem;
+    line-height: 1.2;
   }
 </style>

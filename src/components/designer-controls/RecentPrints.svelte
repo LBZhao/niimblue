@@ -1,6 +1,6 @@
 <script lang="ts">
   import MdIcon from "$/components/basic/MdIcon.svelte";
-  import { recentPrints } from "$/stores";
+  import { recentPrints } from "$/stores/app";
   import type { ExportedLabelTemplate } from "$/types";
   import { tr } from "$/utils/i18n";
   import { recentPrintName } from "$/utils/recent_prints";

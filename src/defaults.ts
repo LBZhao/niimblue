@@ -7,6 +7,11 @@ export const configureFabric = () => {
 
   fabric.classRegistry.setClass(TextboxExt, "Textbox");
 
+  // Redraw objects on every step of a resize drag. By default Fabric keeps the old cached picture until
+  // the mouse is released: scaled vector shapes (circle, SVG) look pixelated, and rect/QR/ArUco lose
+  // the newly added part when enlarged.
+  fabric.FabricObject.ownDefaults.noScaleCache = false;
+
   fabric.Line.prototype.setControlsVisibility({
     tl: false,
     bl: false,
@@ -30,10 +35,10 @@ export const configureFabric = () => {
 export const DEFAULT_LABEL_PRESETS: LabelPreset[] = [
   // 203dpi
   { width: 40, height: 12, unit: "mm", dpmm: 8, printDirection: "left", shape: "rect" },
-  { width: 50, height: 30, unit: "mm", dpmm: 8, printDirection: "top", shape: "rect" },
+  { width: 48, height: 30, unit: "mm", dpmm: 8, printDirection: "top", shape: "rect" },
   // 300dpi
   { width: 40, height: 12, unit: "mm", dpmm: 11.81, printDirection: "left", shape: "rect", title: "40x12mm 300dpi" },
-  { width: 50, height: 30, unit: "mm", dpmm: 11.81, printDirection: "top", shape: "rect", title: "50x30mm 300dpi" },
+  { width: 48, height: 30, unit: "mm", dpmm: 11.81, printDirection: "top", shape: "rect", title: "48x30mm 300dpi" },
 ];
 
 /** Default canvas dimensions */
@@ -53,6 +58,8 @@ export const FALLBACK_DPMM = 8;
 
 /** Object movement snapping */
 export const GRID_SIZE: number = 5;
+
+export const BARCODE_WIDTH: number = 200;
 
 /** Newly created Fabric object dimensions */
 export const OBJECT_SIZE_DEFAULTS = {

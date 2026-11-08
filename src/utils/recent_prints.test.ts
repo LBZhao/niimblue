@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { get } from "svelte/store";
-import { recentPrints } from "$/stores";
+import { recentPrints } from "$/stores/app";
 import dayjs from "dayjs";
 import { historyFileName, rememberPrintedLabel, sameLabelKey, tidyRecentPrints } from "$/utils/recent_prints";
 import type { ExportedLabelTemplate, LabelProps } from "$/types";

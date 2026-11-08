@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { get } from "svelte/store";
-import { recentPrints } from "$/stores";
+import { recentPrints } from "$/stores/app";
 import type { ExportedLabelTemplate } from "$/types";
 
 type SerializedObject = Record<string, unknown> & {

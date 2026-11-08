@@ -1,7 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { derived } from "svelte/store";
-  import { connectionState, connectedPrinterName, printerClient, printerMeta } from "$/stores";
+  import {
+    connectionState,
+    connectedPrinterName,
+    printerClient,
+    printerInfo,
+    printerMeta,
+    rfidInfo,
+  } from "$/stores/app";
   import * as effects from "$/utils/post_process";
   import {
     type EncodedImage,
@@ -17,7 +24,7 @@
     printTasksCapabilities,
     PrintTaskCapability as TaskCap,
   } from "@mmote/niimbluelib";
-  import type { LabelProps, PostProcessType, FabricJson, PreviewProps, PreviewPropsOffset } from "$/types";
+  import { type LabelProps, type PostProcessType, type FabricJson, type PreviewProps, previewPropsKeys } from "$/types";
   import ParamLockButton from "$/components/basic/ParamLockButton.svelte";
   import { tr, type TranslationKey } from "$/utils/i18n";
   import { canvasPreprocess } from "$/utils/canvas_preprocess";
@@ -27,22 +34,22 @@
   import { Toasts } from "$/utils/toasts";
   import { CustomCanvas } from "$/fabric-object/custom_canvas";
   import { FileUtils } from "$/utils/file_utils";
-  import { printDirectionForPrinter } from "$/utils/print_direction";
   import AppModal from "$/components/basic/AppModal.svelte";
   import FeedChip from "$/components/basic/FeedChip.svelte";
+  import { printDirectionForPrinter } from "$/utils/print_direction";
 
   interface Props {
     labelProps: LabelProps;
     canvasCallback: () => FabricJson;
+    onClose?: () => void;
     printNow?: boolean;
     csvData: string;
     csvEnabled: boolean;
-    show: boolean;
     /** Called after a print finished without errors. */
     onPrinted?: () => void;
   }
 
-  let { labelProps, canvasCallback, printNow = false, csvData, csvEnabled, show = $bindable(), onPrinted }: Props = $props();
+  let { labelProps, canvasCallback, printNow = false, csvData, csvEnabled, onClose, onPrinted }: Props = $props();
 
   let previewCanvas: HTMLCanvasElement;
   let printState = $state<"idle" | "printing">("idle");
@@ -50,16 +57,6 @@
     progressType: "send",
     percents: 0,
   });
-  let density = $state<number>($printerMeta?.densityDefault ?? 3);
-  let speed = $state<0 | 1>(1);
-  let quantity = $state<number>(1);
-  let postProcessType = $state<PostProcessType>("threshold");
-  let postProcessInvert = $state<boolean>(false);
-  let postProcessMirror = $state<boolean>(false);
-  let thresholdValue = $state<number>(140);
-  let thresholdValueRed = $state<number>(100);
-  let strengthValue = $state<number>(1);
-  let serpentineValue = $state<boolean>(true);
   let originalImage: ImageData;
   /** The label rendered at PREVIEW_SCALE times printer resolution, for a smooth preview. */
   let originalImageHi: ImageData | undefined;
@@ -67,8 +64,6 @@
   let displayCanvas: HTMLCanvasElement;
   /** Show the exact printer dots instead of the smooth preview. */
   let showPrinterDots = $state<boolean>(false);
-  let printTaskName = $state<PrintTaskName>("B1");
-  let labelType = $state<LabelType>(LabelType.WithGaps);
   // eslint-disable-next-line no-undef
   let statusTimer: NodeJS.Timeout | undefined = undefined;
   let error = $state<string>("");
@@ -76,10 +71,30 @@
   let csvParsed: DSVRowArray<string>;
   let currentPage = $state<number>(0);
   let pagesTotal = $state<number>(1);
-  let offset = $state<PreviewPropsOffset>({ x: 0, y: 0 });
-  let offsetWarning = $state<string>("");
+  let warnings = $state<string[]>([]);
   let currentPrintTask: AbstractPrintTask | undefined;
   let savedProps = $state<PreviewProps>({});
+
+  let params = $state<Required<PreviewProps>>({
+    postProcess: "threshold",
+    postProcessInvert: false,
+    postProcessMirror: false,
+    threshold: 140,
+    thresholdRed: 100,
+    strength: 1,
+    serpentine: true,
+    screentoneDotSize: 5,
+    screentoneAngle: 45,
+    contrast: 60,
+    brightness: 128,
+    quantity: 1,
+    density: $printerMeta?.densityDefault ?? 3,
+    speed: 1,
+    labelType: LabelType.WithGaps,
+    printTaskName: "B1",
+    offset: { x: 0, y: 0 },
+  });
+
   let modalRef: AppModal;
 
   const disconnected = derived(connectionState, ($connectionState) => $connectionState !== "connected");
@@ -134,17 +149,19 @@
     $printerClient.stopHeartbeat();
 
     const opts: Partial<PrintOptions> = {
-      totalPages: pagesTotal * quantity,
-      density,
-      speed,
-      labelType,
+      totalPages: pagesTotal * params.quantity,
+      density: params.density,
+      speed: params.speed,
+      labelType: params.labelType,
       statusPollIntervalMs: 100,
       statusTimeoutMs: 8_000,
       pageColor: PageColorType.SingleColor,
     };
 
-    if (taskHasCap(TaskCap.SupportDoubleColor) && postProcessType === "threshold_rb") {
+    if (params.postProcess === "threshold_rb" && taskHasCap(TaskCap.SupportDoubleColor)) {
       opts.pageColor = PageColorType.DoubleColor;
+    } else if (params.postProcess === "grayscale" && taskHasCap(TaskCap.SupportGrayscale)) {
+      opts.pageColor = PageColorType.Grayscale;
     }
 
     const printListener = (e: PrintProgressEvent) => {
@@ -160,7 +177,7 @@
     $printerClient.on("printprogress", printListener);
     $printerClient.on("printpacketprogress", sendListener);
 
-    currentPrintTask = $printerClient.protocol.newPrintTask(printTaskName, opts);
+    currentPrintTask = $printerClient.protocol.newPrintTask(params.printTaskName, opts);
 
     try {
       await currentPrintTask.printInit();
@@ -175,7 +192,7 @@
           effectivePrintDirection,
         );
 
-        await currentPrintTask.printPage(encoded, quantity);
+        await currentPrintTask.printPage(encoded, params.quantity);
         await currentPrintTask.waitForPageFinished();
       }
       await currentPrintTask.waitForFinished();
@@ -213,14 +230,14 @@
     let iData: ImageData = effects.copyImageData(source);
 
     const ditherOpts = {
-      threshold: thresholdValue,
-      strength: strengthValue,
-      serpentine: serpentineValue,
+      threshold: params.threshold,
+      strength: params.strength,
+      serpentine: params.serpentine,
     };
 
     const processors: Record<PostProcessType, (data: ImageData) => ImageData> = {
-      threshold: (data) => effects.threshold(data, thresholdValue),
-      threshold_rb: (data) => effects.thresholdRedBlack(data, thresholdValue, thresholdValueRed),
+      threshold: (data) => effects.threshold(data, params.threshold),
+      threshold_rb: (data) => effects.thresholdRedBlack(data, params.threshold, params.thresholdRed),
       dither: (data) => effects.atkinson(data, ditherOpts),
       floyd_steinberg: (data) => effects.floydSteinberg(data, ditherOpts),
       jjn: (data) => effects.jarvisJudiceNinke(data, ditherOpts),
@@ -228,23 +245,32 @@
       bayer2: (data) => effects.bayer(data, 2),
       bayer4: (data) => effects.bayer(data, 4),
       bayer8: (data) => effects.bayer(data, 8),
+      screentone: (data) =>
+        effects.screentone(
+          data,
+          params.threshold,
+          params.screentoneDotSize * scale,
+          params.screentoneAngle,
+          params.contrast,
+        ),
+      grayscale: (data) => effects.grayscale(data, params.contrast, params.brightness),
     };
 
-    iData = processors[postProcessType](iData);
+    iData = processors[params.postProcess](iData);
 
-    if (postProcessInvert) {
+    if (params.postProcessInvert) {
       iData = effects.invert(iData);
     }
 
-    if (postProcessMirror) {
+    if (params.postProcessMirror) {
       iData = effects.mirror(iData);
     }
 
     // The printer centres the image across its printhead and starts at the label's leading edge.
     // Across the head: pad both sides, so the centred image moves by exactly the offset and nothing is cut.
     // Along the feed: keep the length and move inside it, so nothing prints past the label.
-    const moveX = Math.round(Number(offset.x) || 0) * scale;
-    const moveY = Math.round(Number(offset.y) || 0) * scale;
+    const moveX = Math.round(Number(params.offset.x) || 0) * scale;
+    const moveY = Math.round(Number(params.offset.y) || 0) * scale;
     const acrossIsX = effectivePrintDirection === "top";
     const pad = Math.abs(acrossIsX ? moveX : moveY);
     target.width = source.width + (acrossIsX ? 2 * pad : 0);
@@ -256,7 +282,7 @@
   };
 
   const updatePreview = () => {
-    offsetWarning = "";
+    warnings = [];
 
     // The image that gets printed.
     renderProcessed(originalImage, previewCanvas, 1);
@@ -273,19 +299,26 @@
       displayCanvas.style.width = `${previewCanvas.width}px`;
     }
 
-    if ($printerMeta !== undefined) {
-      const headSize = effectivePrintDirection == "left" ? previewCanvas.height : previewCanvas.width;
-      if (headSize > $printerMeta.printheadPixels) {
-        offsetWarning += $tr("params.label.warning.width") + " ";
-        offsetWarning += `(${headSize} > ${$printerMeta.printheadPixels})`;
-        offsetWarning += "\n";
+    let headSize = -1;
+
+    if ($printerInfo?.printheadWidth !== undefined) {
+      headSize = $printerInfo.printheadWidth;
+    } else if ($printerMeta?.printheadPixels !== undefined) {
+      headSize = $printerMeta.printheadPixels;
+    }
+
+    if (headSize !== -1) {
+      const printWidth = effectivePrintDirection == "left" ? previewCanvas.height : previewCanvas.width;
+
+      if (printWidth > headSize) {
+        warnings.push($tr("params.label.warning.width") + " " + `${printWidth} > ${headSize}`);
       }
     }
   };
 
   const toggleSavedProp = (key: string, value: any) => {
     const keyObj = key as keyof typeof savedProps;
-    savedProps[keyObj] = savedProps[keyObj] === undefined ? value : undefined;
+    savedProps[keyObj] = savedProps[keyObj] === undefined ? $state.snapshot(value) : undefined;
     try {
       LocalStoragePersistence.savePreviewProps(savedProps);
     } catch (e) {
@@ -293,11 +326,27 @@
     }
   };
 
+  /**
+   * Commit a value typed into a slider's number box: revert if empty, clamp to the input's own
+   * min/max and trim float noise to its step. (A native number input only clamps with its
+   * spinner, not typed text.)
+   */
+  const commitSliderValue = (e: Event, current: number): number => {
+    const el = e.currentTarget as HTMLInputElement;
+    const typed = el.valueAsNumber;
+    const decimals = (el.step.split(".")[1] ?? "").length;
+    const next = Number.isNaN(typed)
+      ? current
+      : Number(Math.min(Number(el.max), Math.max(Number(el.min), typed)).toFixed(decimals));
+    el.value = String(next);
+    return next;
+  };
+
   const updateSavedProp = (key: string, value: any, refreshPreview: boolean = false) => {
     const keyObj = key as keyof typeof savedProps;
 
     if (savedProps[keyObj] !== undefined) {
-      savedProps[keyObj] = value;
+      savedProps[keyObj] = $state.snapshot(value);
       try {
         LocalStoragePersistence.savePreviewProps(savedProps);
       } catch (e) {
@@ -317,18 +366,19 @@
         return;
       }
       savedProps = saved;
-      if (saved.postProcess !== undefined) postProcessType = saved.postProcess;
-      if (saved.postProcessInvert !== undefined) postProcessInvert = saved.postProcessInvert;
-      if (saved.threshold !== undefined) thresholdValue = saved.threshold;
-      if (saved.thresholdRed !== undefined) thresholdValueRed = saved.thresholdRed;
-      if (saved.strength !== undefined) strengthValue = saved.strength;
-      if (saved.serpentine !== undefined) serpentineValue = saved.serpentine;
-      if (saved.quantity !== undefined) quantity = saved.quantity;
-      if (saved.density !== undefined) density = saved.density;
-      if (saved.speed !== undefined) speed = saved.speed;
-      if (saved.labelType !== undefined) labelType = saved.labelType;
-      if (saved.printTaskName !== undefined) printTaskName = saved.printTaskName;
-      if (saved.offset !== undefined) offset = saved.offset;
+
+      const buf: Record<string, unknown> = {};
+
+      for (const key of previewPropsKeys) {
+        if (saved[key] !== undefined) {
+          if (typeof saved[key] === "object") {
+            buf[key] = { ...saved[key] };
+          } else {
+            buf[key] = saved[key];
+          }
+        }
+      }
+      Object.assign(params, buf);
     } catch (e) {
       Toasts.zodErrors(e, "Preview parameters load error:");
     }
@@ -399,10 +449,11 @@
 
   const onModalClose = () => {
     endPrint();
+    onClose?.();
   };
 
   const taskHasCap = (cap: TaskCap) => {
-    return printTasksCapabilities[printTaskName].includes(cap);
+    return printTasksCapabilities[params.printTaskName].includes(cap);
   };
 
   onMount(async () => {
@@ -440,7 +491,17 @@
 
     if (detectedPrintTaskName !== undefined) {
       console.log(`Detected print task version: ${detectedPrintTaskName}`);
-      printTaskName = detectedPrintTaskName;
+      params.printTaskName = detectedPrintTaskName;
+    }
+
+    // Base offset comes from the label (preset) or defaults to 0,0.
+    // A locked (saved) preview offset is applied on top of it by loadProps().
+    if (labelProps.offset !== undefined) {
+      params.offset = { ...labelProps.offset };
+    }
+
+    if ($rfidInfo.labelRfidInfo?.consumablesType) {
+      params.labelType = $rfidInfo.labelRfidInfo.consumablesType;
     }
 
     loadProps();
@@ -453,7 +514,7 @@
   });
 </script>
 
-<AppModal title={$tr("preview.title")} onClose={onModalClose} bind:show bind:this={modalRef}>
+<AppModal title={$tr("preview.title")} onClose={onModalClose} bind:this={modalRef} size="lg">
   <div class="d-flex justify-content-center">
     {#if pagesTotal > 1}
       <button disabled={printState !== "idle"} class="btn w-100 fs-1" onclick={pageDown}>
@@ -510,13 +571,17 @@
   </div>
 
   {#snippet footer()}
+    {#each warnings as line (line)}
+        <span class="text-warning w-100">{line}</span>
+    {/each}
+
     <div class="input-group input-group-sm">
       <span class="input-group-text">{$tr("preview.postprocess")}</span>
 
       <select
         class="form-select"
-        bind:value={postProcessType}
-        onchange={() => updateSavedProp("postProcess", postProcessType, true)}>
+        bind:value={params.postProcess}
+        onchange={() => updateSavedProp("postProcess", params.postProcess, true)}>
         <option value="threshold">{$tr("preview.postprocess.threshold")}</option>
         <option value="threshold_rb" disabled={!taskHasCap(TaskCap.SupportDoubleColor)}
           >{$tr("preview.postprocess.threshold.red")}</option>
@@ -527,34 +592,36 @@
         <option value="floyd_steinberg">{$tr("preview.postprocess.floyd_steinberg")}</option>
         <option value="jjn">{$tr("preview.postprocess.jjn")}</option>
         <option value="stucki">{$tr("preview.postprocess.stucki")}</option>
+        <option value="screentone">{$tr("preview.postprocess.screentone")}</option>
+        <option value="grayscale">{$tr("preview.postprocess.grayscale")}</option>
       </select>
 
       <ParamLockButton
         propName="postProcess"
-        value={postProcessType}
+        value={params.postProcess}
         savedValue={savedProps.postProcess}
         onClick={toggleSavedProp} />
 
       <button
-        class="btn btn-sm {postProcessInvert ? 'btn-secondary' : 'btn-outline-secondary'}"
+        class="btn btn-sm {params.postProcessInvert ? 'btn-secondary' : 'btn-outline-secondary'}"
         onclick={() => {
-          postProcessInvert = !postProcessInvert;
+          params.postProcessInvert = !params.postProcessInvert;
           updatePreview();
         }}>
         <MdIcon icon="invert_colors" />
       </button>
 
       <button
-        class="btn btn-sm {postProcessMirror ? 'btn-secondary' : 'btn-outline-secondary'}"
+        class="btn btn-sm {params.postProcessMirror ? 'btn-secondary' : 'btn-outline-secondary'}"
         onclick={() => {
-          postProcessMirror = !postProcessMirror;
+          params.postProcessMirror = !params.postProcessMirror;
           updatePreview();
         }}>
         <MdIcon icon="flip" />
       </button>
     </div>
 
-    {#if !(postProcessType && ["bayer2", "bayer4", "bayer8"].includes(postProcessType))}
+    {#if !(params.postProcess && ["bayer2", "bayer4", "bayer8", "grayscale"].includes(params.postProcess))}
       <div class="input-group input-group-sm">
         <span class="input-group-text">{$tr("preview.threshold")}</span>
 
@@ -564,19 +631,28 @@
           class="form-range"
           min="1"
           max="255"
-          bind:value={thresholdValue}
-          onchange={() => updateSavedProp("threshold", thresholdValue, true)} />
-        <span class="input-group-text">{thresholdValue}</span>
+          bind:value={params.threshold}
+          onchange={() => updateSavedProp("threshold", params.threshold, true)} />
+        <input
+          type="number"
+          class="form-control slider-value"
+          min={1}
+          max={255}
+          value={params.threshold}
+          onchange={(e) => {
+            params.threshold = commitSliderValue(e, params.threshold);
+            updateSavedProp("threshold", params.threshold, true);
+          }} />
 
         <ParamLockButton
           propName="threshold"
-          value={thresholdValue}
+          value={params.threshold}
           savedValue={savedProps.threshold}
           onClick={toggleSavedProp} />
       </div>
     {/if}
 
-    {#if postProcessType === "floyd_steinberg" || postProcessType === "jjn" || postProcessType === "stucki" || postProcessType === "dither"}
+    {#if params.postProcess === "floyd_steinberg" || params.postProcess === "jjn" || params.postProcess === "stucki" || params.postProcess === "dither"}
       <div class="input-group input-group-sm">
         <span class="input-group-text">{$tr("preview.strength")}</span>
 
@@ -587,29 +663,39 @@
           min="0"
           max="1.5"
           step="0.1"
-          bind:value={strengthValue}
-          onchange={() => updateSavedProp("strength", strengthValue, true)} />
-        <span class="input-group-text">{strengthValue.toFixed(1)}</span>
+          bind:value={params.strength}
+          onchange={() => updateSavedProp("strength", params.strength, true)} />
+        <input
+          type="number"
+          class="form-control slider-value"
+          min={0}
+          max={1.5}
+          step={0.1}
+          value={params.strength}
+          onchange={(e) => {
+            params.strength = commitSliderValue(e, params.strength);
+            updateSavedProp("strength", params.strength, true);
+          }} />
 
         <ParamLockButton
           propName="strength"
-          value={strengthValue}
+          value={params.strength}
           savedValue={savedProps.strength}
           onClick={toggleSavedProp} />
 
         <button
-          class="btn btn-sm {serpentineValue ? 'btn-secondary' : 'btn-outline-secondary'}"
+          class="btn btn-sm {params.serpentine ? 'btn-secondary' : 'btn-outline-secondary'}"
           title={$tr("preview.serpentine")}
           onclick={() => {
-            serpentineValue = !serpentineValue;
-            updateSavedProp("serpentine", serpentineValue, true);
+            params.serpentine = !params.serpentine;
+            updateSavedProp("serpentine", params.serpentine, true);
           }}>
           <MdIcon icon="swap_vert" />
         </button>
       </div>
     {/if}
 
-    {#if postProcessType === "threshold_rb"}
+    {#if params.postProcess === "threshold_rb"}
       <div class="input-group input-group-sm">
         <span class="input-group-text">{$tr("preview.threshold.red")}</span>
 
@@ -619,14 +705,145 @@
           class="form-range"
           min="1"
           max="255"
-          bind:value={thresholdValueRed}
-          onchange={() => updateSavedProp("thresholdRed", thresholdValueRed, true)} />
-        <span class="input-group-text">{thresholdValueRed}</span>
+          bind:value={params.thresholdRed}
+          onchange={() => updateSavedProp("thresholdRed", params.thresholdRed, true)} />
+        <input
+          type="number"
+          class="form-control slider-value"
+          min={1}
+          max={255}
+          value={params.thresholdRed}
+          onchange={(e) => {
+            params.thresholdRed = commitSliderValue(e, params.thresholdRed);
+            updateSavedProp("thresholdRed", params.thresholdRed, true);
+          }} />
 
         <ParamLockButton
           propName="thresholdRed"
-          value={thresholdValueRed}
+          value={params.thresholdRed}
           savedValue={savedProps.thresholdRed}
+          onClick={toggleSavedProp} />
+      </div>
+    {/if}
+
+    {#if params.postProcess === "screentone"}
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">{$tr("preview.postprocess.screentone.dot_size")}</span>
+
+        <input
+          type="range"
+          id="screentoneDotSize"
+          class="form-range"
+          min="1"
+          max="20"
+          bind:value={params.screentoneDotSize}
+          onchange={() => updateSavedProp("screentoneDotSize", params.screentoneDotSize, true)} />
+        <input
+          type="number"
+          class="form-control slider-value"
+          min={1}
+          max={20}
+          value={params.screentoneDotSize}
+          onchange={(e) => {
+            params.screentoneDotSize = commitSliderValue(e, params.screentoneDotSize);
+            updateSavedProp("screentoneDotSize", params.screentoneDotSize, true);
+          }} />
+
+        <ParamLockButton
+          propName="screentoneDotSize"
+          value={params.screentoneDotSize}
+          savedValue={savedProps.screentoneDotSize}
+          onClick={toggleSavedProp} />
+      </div>
+
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">{$tr("preview.postprocess.screentone.angle")}</span>
+
+        <input
+          type="range"
+          id="screentoneAngle"
+          class="form-range"
+          min="0"
+          max="90"
+          bind:value={params.screentoneAngle}
+          onchange={() => updateSavedProp("screentoneAngle", params.screentoneAngle, true)} />
+        <input
+          type="number"
+          class="form-control slider-value"
+          min={0}
+          max={90}
+          value={params.screentoneAngle}
+          onchange={(e) => {
+            params.screentoneAngle = commitSliderValue(e, params.screentoneAngle);
+            updateSavedProp("screentoneAngle", params.screentoneAngle, true);
+          }} />
+
+        <ParamLockButton
+          propName="screentoneAngle"
+          value={params.screentoneAngle}
+          savedValue={savedProps.screentoneAngle}
+          onClick={toggleSavedProp} />
+      </div>
+    {/if}
+
+    {#if ["screentone", "grayscale"].includes(params.postProcess)}
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">{$tr("preview.postprocess.contrast")}</span>
+
+        <input
+          type="range"
+          id="contrast"
+          class="form-range"
+          min="0"
+          max="127"
+          bind:value={params.contrast}
+          onchange={() => updateSavedProp("contrast", params.contrast, true)} />
+        <input
+          type="number"
+          class="form-control slider-value"
+          min={0}
+          max={127}
+          value={params.contrast}
+          onchange={(e) => {
+            params.contrast = commitSliderValue(e, params.contrast);
+            updateSavedProp("contrast", params.contrast, true);
+          }} />
+
+        <ParamLockButton
+          propName="contrast"
+          value={params.contrast}
+          savedValue={savedProps.contrast}
+          onClick={toggleSavedProp} />
+      </div>
+    {/if}
+
+    {#if ["grayscale"].includes(params.postProcess)}
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">{$tr("preview.postprocess.brightness")}</span>
+
+        <input
+          type="range"
+          id="brightness"
+          class="form-range"
+          min="0"
+          max="255"
+          bind:value={params.brightness}
+          onchange={() => updateSavedProp("brightness", params.brightness, true)} />
+        <input
+          type="number"
+          class="form-control slider-value"
+          min={0}
+          max={255}
+          value={params.brightness}
+          onchange={(e) => {
+            params.brightness = commitSliderValue(e, params.brightness);
+            updateSavedProp("brightness", params.brightness, true);
+          }} />
+
+        <ParamLockButton
+          propName="brightness"
+          value={params.brightness}
+          savedValue={savedProps.brightness}
           onClick={toggleSavedProp} />
       </div>
     {/if}
@@ -637,11 +854,11 @@
         class="form-control"
         type="number"
         min="1"
-        bind:value={quantity}
-        onchange={() => updateSavedProp("quantity", quantity)} />
+        bind:value={params.quantity}
+        onchange={() => updateSavedProp("quantity", params.quantity)} />
       <ParamLockButton
         propName="quantity"
-        value={quantity}
+        value={params.quantity}
         savedValue={savedProps.quantity}
         onClick={toggleSavedProp} />
     </div>
@@ -653,26 +870,40 @@
         type="number"
         min={$printerMeta?.densityMin ?? 1}
         max={$printerMeta?.densityMax ?? 20}
-        bind:value={density}
-        onchange={() => updateSavedProp("density", density)} />
-      <ParamLockButton propName="density" value={density} savedValue={savedProps.density} onClick={toggleSavedProp} />
+        bind:value={params.density}
+        onchange={() => updateSavedProp("density", params.density)} />
+      <ParamLockButton
+        propName="density"
+        value={params.density}
+        savedValue={savedProps.density}
+        onClick={toggleSavedProp} />
     </div>
 
-    {#if printTaskName === "D110M_V4"}
+    {#if params.printTaskName === "D110M_V4"}
       <div class="input-group flex-nowrap input-group-sm">
         <span class="input-group-text">{$tr("preview.speed")}</span>
-        <select class="form-select" bind:value={speed} onchange={() => updateSavedProp("speed", speed, true)}>
+        <select
+          class="form-select"
+          bind:value={params.speed}
+          onchange={() => updateSavedProp("speed", params.speed, true)}>
           <option value={0}>{$tr("preview.speed.0")}</option>
           <option value={1}>{$tr("preview.speed.1")}</option>
         </select>
 
-        <ParamLockButton propName="speed" value={speed} savedValue={savedProps.speed} onClick={toggleSavedProp} />
+        <ParamLockButton
+          propName="speed"
+          value={params.speed}
+          savedValue={savedProps.speed}
+          onClick={toggleSavedProp} />
       </div>
     {/if}
 
     <div class="input-group input-group-sm">
       <span class="input-group-text">{$tr("preview.label_type")}</span>
-      <select class="form-select" bind:value={labelType} onchange={() => updateSavedProp("labelType", labelType)}>
+      <select
+        class="form-select"
+        bind:value={params.labelType}
+        onchange={() => updateSavedProp("labelType", params.labelType)}>
         {#each Object.values(LabelType) as lt (lt)}
           {#if typeof lt !== "string"}
             <option value={lt}>
@@ -685,7 +916,7 @@
 
       <ParamLockButton
         propName="labelType"
-        value={labelType}
+        value={params.labelType}
         savedValue={savedProps.labelType}
         onClick={toggleSavedProp} />
     </div>
@@ -694,11 +925,11 @@
       <span class="input-group-text">{$tr("preview.print_task")}</span>
       <select
         class="form-select"
-        bind:value={printTaskName}
+        bind:value={params.printTaskName}
         onchange={() => {
-          updateSavedProp("printTaskName", printTaskName);
-          if (!taskHasCap(TaskCap.SupportDoubleColor) && postProcessType === "threshold_rb") {
-            postProcessType = "threshold";
+          updateSavedProp("printTaskName", params.printTaskName);
+          if (!taskHasCap(TaskCap.SupportDoubleColor) && params.postProcess === "threshold_rb") {
+            params.postProcess = "threshold";
             updatePreview();
           }
         }}>
@@ -712,34 +943,35 @@
 
       <ParamLockButton
         propName="printTaskName"
-        value={printTaskName}
+        value={params.printTaskName}
         savedValue={savedProps.printTaskName}
         onClick={toggleSavedProp} />
     </div>
 
     <div class="input-group input-group-sm">
       <span class="input-group-text">{$tr("preview.offset")}</span>
-      {#if offsetWarning}
-        <span class="input-group-text text-warning" title={offsetWarning}><MdIcon icon="warning" /></span>
-      {/if}
       <span class="input-group-text"><MdIcon icon="unfold_more" class="r-90" /></span>
       <input
         class="form-control"
         type="number"
-        bind:value={offset.x}
-        onchange={() => updateSavedProp("offset", offset, true)} />
+        bind:value={params.offset.x}
+        onchange={() => updateSavedProp("offset", params.offset, true)} />
       <span class="input-group-text"><MdIcon icon="unfold_more" /></span>
       <input
         class="form-control"
         type="number"
-        bind:value={offset.y}
-        onchange={() => updateSavedProp("offset", offset, true)} />
+        bind:value={params.offset.y}
+        onchange={() => updateSavedProp("offset", params.offset, true)} />
 
-      <ParamLockButton propName="offset" value={offset} savedValue={savedProps.offset} onClick={toggleSavedProp} />
+      <ParamLockButton
+        propName="offset"
+        value={params.offset}
+        savedValue={savedProps.offset}
+        onClick={toggleSavedProp} />
     </div>
     <!-- Printer pixels: what the move is on paper, for this label's dpi. -->
     <div class="form-text w-100 text-end mt-0">
-      px · ≈ {offsetMm(offset.x)} mm ↔ · {offsetMm(offset.y)} mm ↕
+      px · ≈ {offsetMm(params.offset.x)} mm ↔ · {offsetMm(params.offset.y)} mm ↕
     </div>
 
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{$tr("preview.close")}</button>
@@ -779,6 +1011,10 @@
   }
   .progress-bar {
     transition: none;
+  }
+  .input-group .slider-value {
+    flex: 0 0 auto;
+    width: 4rem;
   }
   .input-group .form-range {
     flex-grow: 1;
