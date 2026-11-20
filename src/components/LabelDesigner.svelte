@@ -834,9 +834,11 @@
 </div>
 
 <style>
+  /* The label sits on its own stage, a step lighter than the page. */
   .canvas-wrapper {
-    border: 1px solid rgba(0, 0, 0, 0.4);
-    background-color: rgba(60, 55, 63, 0.5);
+    border: 1px solid var(--app-border);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--app-surface-1);
     max-width: 100%;
     max-height: 70vh;
     overflow: auto;
@@ -863,14 +865,16 @@
       gap: 8px !important;
       padding: 8px calc(12px + var(--app-inset-right)) calc(8px + var(--app-inset-bottom))
         calc(12px + var(--app-inset-left));
-      background: var(--bs-body-bg);
-      border-top: 1px solid var(--bs-border-color);
+      background: rgba(14, 17, 22, 0.88);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--app-border);
     }
 
     .print-actions .btn {
       flex: 1;
       min-height: 48px;
       font-size: 1rem;
+      border-radius: 999px;
     }
 
     /* Keep the end of the page clear of the bar. */

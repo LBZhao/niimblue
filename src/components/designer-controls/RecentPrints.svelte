@@ -98,13 +98,15 @@
   .recent-item {
     width: 100%;
     line-height: 0;
+    background: var(--app-surface-1);
+    border-radius: var(--bs-border-radius-lg);
   }
 
   /* Wide labels fill the width; tall labels stop at this height. */
   .recent-item img {
     max-width: 100%;
     max-height: 91px;
-    border-radius: 2px;
+    border-radius: 6px;
   }
 
   .recent-name {

@@ -1,3 +1,26 @@
+// App theme: deep blue-grey surfaces, one blue accent, rounder shapes, a highly legible UI font.
+// Bootstrap reads these before it builds; the rest of the look is in the --app-* tokens below.
+$font-family-sans-serif: "Atkinson Hyperlegible Next", "Noto Sans Variable", system-ui, sans-serif;
+$primary: #2563eb;
+$body-bg-dark: #0e1116;
+$body-color-dark: #e6e9ee;
+$body-secondary-color-dark: rgba(#e6e9ee, 0.64);
+$body-tertiary-color-dark: rgba(#e6e9ee, 0.45);
+$body-secondary-bg-dark: #1d232c;
+$body-tertiary-bg-dark: #151a21;
+$border-color-dark: #2a313c;
+$border-radius: 0.625rem;
+$border-radius-sm: 0.5rem;
+$border-radius-lg: 0.875rem;
+$border-radius-xl: 1.25rem;
+$modal-content-bg: var(--bs-tertiary-bg);
+$modal-content-border-radius: 1.25rem;
+$modal-backdrop-opacity: 0.6;
+$input-group-addon-bg: var(--bs-secondary-bg);
+$dropdown-bg: var(--bs-secondary-bg);
+$dropdown-border-radius: 0.75rem;
+$headings-font-weight: 650;
+
 @import "bootstrap/scss/bootstrap-utilities";
 @import "bootstrap/scss/reboot";
 @import "bootstrap/scss/type";
@@ -21,6 +44,13 @@
  * In a browser these are all 0.
  */
 :root {
+  /* Surfaces from back to front: page, panels, buttons, pressed buttons. */
+  --app-surface-1: #151a21;
+  --app-surface-2: #1f262f;
+  --app-surface-3: #2a323d;
+  --app-border: #2a313c;
+  --app-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+
   --app-inset-top: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
   --app-inset-right: max(var(--safe-area-inset-right, 0px), env(safe-area-inset-right, 0px));
   --app-inset-bottom: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
@@ -42,7 +72,6 @@
 }
 
 body {
-  font-family: "Noto Sans Variable", sans-serif;
   padding: var(--app-inset-top) var(--app-inset-right) var(--app-inset-bottom) var(--app-inset-left);
 }
 
@@ -68,16 +97,80 @@ body {
   }
 }
 
+.toastify {
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--app-shadow);
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--bs-body-color);
+}
+
 .toastify.toast-danger {
-  background: var(--bs-danger-bg-subtle);
-  border: 1px solid var(--bs-danger-border-subtle);
-  color: var(--bs-danger-text-emphasis);
+  border-left: 4px solid var(--bs-danger);
 }
 
 .toastify.toast-info {
-  background: var(--bs-success-bg-subtle);
-  border: 1px solid var(--bs-success-border-subtle);
-  color: var(--bs-success-text-emphasis);
+  border-left: 4px solid var(--bs-success);
+}
+
+/*
+ * Buttons. Grey actions sit on the surfaces as raised tiles; outlined ones are quieter.
+ * Bootstrap's own grey is kept for text-secondary, so only the buttons are restyled here.
+ */
+.btn {
+  font-weight: 500;
+}
+
+.btn-secondary {
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-bg: var(--app-surface-2);
+  --bs-btn-border-color: var(--app-border);
+  --bs-btn-hover-color: var(--bs-emphasis-color);
+  --bs-btn-hover-bg: var(--app-surface-3);
+  --bs-btn-hover-border-color: var(--app-surface-3);
+  --bs-btn-active-color: var(--bs-emphasis-color);
+  --bs-btn-active-bg: var(--app-surface-3);
+  --bs-btn-active-border-color: var(--bs-primary);
+  --bs-btn-disabled-color: var(--bs-tertiary-color);
+  --bs-btn-disabled-bg: var(--app-surface-2);
+  --bs-btn-disabled-border-color: var(--app-border);
+}
+
+.btn-outline-secondary {
+  --bs-btn-color: var(--bs-secondary-color);
+  --bs-btn-border-color: var(--app-border);
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: var(--app-surface-2);
+  --bs-btn-hover-border-color: var(--app-surface-3);
+  --bs-btn-active-color: var(--bs-emphasis-color);
+  --bs-btn-active-bg: var(--app-surface-3);
+  --bs-btn-active-border-color: var(--app-surface-3);
+  --bs-btn-disabled-color: var(--bs-tertiary-color);
+  --bs-btn-disabled-border-color: var(--app-border);
+}
+
+/* Keyboard focus shows as a clear ring; a tap does not leave one behind. */
+.btn:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+.form-control,
+.form-select {
+  border-color: var(--app-border);
+}
+
+.modal-content {
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow);
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--app-border);
+}
+
+.dropdown-menu {
+  box-shadow: var(--app-shadow);
 }
 
 /*
@@ -121,11 +214,21 @@ body {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 3px;
+  gap: 4px;
+  padding: 4px;
   max-width: 100%;
   border-radius: var(--bs-border-radius-lg);
-  background: var(--bs-tertiary-bg);
+  background: var(--app-surface-1);
+  border: 1px solid var(--app-border);
+}
+
+/* Inside a group the panel already marks the buttons; they only light up on hover or press. */
+.tool-group > .btn-secondary,
+.tool-group > * > .btn-secondary {
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: transparent;
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: transparent;
 }
 
 /* Phones: two rows of two groups, in columns, so the groups above each other are the same width. */

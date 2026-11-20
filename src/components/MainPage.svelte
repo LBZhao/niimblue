@@ -25,7 +25,7 @@
   <div class="container my-2 flex-grow-1">
     <div class="row align-items-center mb-3">
       <div class="col">
-        <h1 class="title">
+        <h1 class="title mb-0">
           <span class="niim">Niim</span><span class="blue">Blue{isStandalone ? "s" : ""}</span>
         </h1>
       </div>
@@ -85,11 +85,17 @@
 <AppConfirm />
 
 <style>
+  .title {
+    font-size: 1.6rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+  }
+
   .niim {
-    color: #ff5349;
+    color: #ff5a52;
   }
 
   .blue {
-    color: #0b7eff;
+    color: #4c8dff;
   }
 </style>
