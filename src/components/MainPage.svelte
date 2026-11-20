@@ -22,17 +22,58 @@
 </script>
 
 <div class="page-wrapper d-flex flex-column min-vh-100">
-  <div class="container my-2 flex-grow-1">
-    <div class="row align-items-center mb-3">
-      <div class="col">
-        <h1 class="title mb-0">
-          <span class="niim">Niim</span><span class="blue">Blue{isStandalone ? "s" : ""}</span>
-        </h1>
-      </div>
-      <div class="col-md-3">
-        <PrinterConnector />
+  <!-- Stays at the top while the page scrolls: the app's name, the printer, and the app menu. -->
+  <header class="app-bar">
+    <div class="container d-flex align-items-center gap-2">
+      <h1 class="title mb-0 me-auto">
+        <span class="niim">Niim</span><span class="blue">Blue{isStandalone ? "s" : ""}</span>
+      </h1>
+
+      <PrinterConnector />
+
+      <div class="dropdown">
+        <button
+          class="btn btn-sm btn-outline-secondary menu-button"
+          data-bs-toggle="dropdown"
+          data-bs-auto-close="outside"
+          title={$tr("main.menu")}
+          aria-label={$tr("main.menu")}>
+          <MdIcon icon="more_vert" />
+        </button>
+        <div class="dropdown-menu dropdown-menu-end p-3 app-menu">
+          <label class="form-label small text-secondary mb-1" for="app-language">{$tr("main.language")}</label>
+          <select id="app-language" class="form-select form-select-sm" bind:value={$locale}>
+            {#each Object.entries(locales) as [key, name] (key)}
+              <option value={key}>{name}</option>
+            {/each}
+          </select>
+
+          <hr class="dropdown-divider my-3" />
+
+          <a class="dropdown-item rounded" href="https://github.com/LBZhao/niimblue" target="_blank" rel="noopener">
+            <MdIcon icon="code" />
+            {$tr("main.code")}
+          </a>
+          <button class="dropdown-item rounded" onclick={() => (debugStuffShow = true)}>
+            <MdIcon icon="bug_report" />
+            {$tr("debug.title")}
+          </button>
+
+          <div class="small text-secondary mt-2 px-3">
+            {#if appVersion}
+              {appVersion} ·
+            {:else if appCommit}
+              {appCommit.slice(0, 6)} ·
+            {/if}
+            {$tr("main.built")}
+            {buildDate}
+          </div>
+        </div>
       </div>
     </div>
+  </header>
+
+  <div class="container my-3 flex-grow-1">
     <div class="row">
       <div class="col">
         <BrowserWarning />
@@ -46,34 +87,6 @@
     </div>
   </div>
 
-  <div class="footer text-end text-secondary p-3">
-    <div>
-      <select class="form-select form-select-sm text-secondary d-inline-block w-auto" bind:value={$locale}>
-        {#each Object.entries(locales) as [key, name] (key)}
-          <option value={key}>{name}</option>
-        {/each}
-      </select>
-    </div>
-    <div>
-      {#if appVersion}
-        <a class="text-secondary" href="https://github.com/MultiMote/niimblue/releases/tag/{appVersion}">
-          {appVersion}
-        </a>
-      {:else if appCommit}
-        <a class="text-secondary" href="https://github.com/MultiMote/niimblue/commit/{appCommit}">
-          {appCommit.slice(0, 6)}
-        </a>
-      {/if}
-      {$tr("main.built")}
-      {buildDate}
-    </div>
-    <div>
-      <a class="text-secondary" href="https://github.com/MultiMote/niimblue">{$tr("main.code")}</a>
-      <button class="text-secondary btn btn-link p-0" onclick={() => debugStuffShow = true}>
-        <MdIcon icon="bug_report" />
-      </button>
-    </div>
-  </div>
 </div>
 
 {#if debugStuffShow}
@@ -85,8 +98,35 @@
 <AppConfirm />
 
 <style>
+  .app-bar {
+    position: sticky;
+    top: 0;
+    z-index: 980;
+    /* Reach under the status bar, which the body is otherwise padded clear of. */
+    margin-top: calc(-1 * var(--app-inset-top));
+    padding: calc(0.5rem + var(--app-inset-top)) 0 0.5rem;
+    background: rgba(14, 17, 22, 0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .menu-button {
+    border-radius: 999px;
+  }
+
+  .app-menu {
+    width: 100vw;
+    max-width: 280px;
+  }
+
+  .app-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   .title {
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 750;
     letter-spacing: -0.02em;
   }

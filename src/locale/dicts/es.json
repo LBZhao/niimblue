@@ -1,5 +1,10 @@
 {
     "lang.name": "Español",
+    "main.menu": "Menú",
+    "main.language": "Idioma",
+    "connector.connect": "Conectar",
+    "connector.connecting": "Conectando…",
+    "connector.disconnect": "Desconectar",
     "browser_warning.fingerprinting": "¡Vaya! Parece que tu navegador está distorsionando el lienzo para protegerte del fingerprinting. Por favor, desactiva esta protección, ya que puede provocar artefactos en las etiquetas.",
     "browser_warning.lines.first": "Oh no, tu navegador no admite comunicaciones Bluetooth ni serie",
     "browser_warning.lines.second": "En cualquier caso, aún puedes dibujar etiquetas.",

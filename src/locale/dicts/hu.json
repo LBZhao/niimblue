@@ -1,5 +1,10 @@
 {
     "lang.name": "Magyar",
+    "main.menu": "Menü",
+    "main.language": "Nyelv",
+    "connector.connect": "Csatlakozás",
+    "connector.connecting": "Csatlakozás…",
+    "connector.disconnect": "Leválasztás",
     "browser_warning.fingerprinting": "Whoa! It looks like your browser is distorting the canvas to protect against fingerprinting. Please disable this protection, as it can cause artifacts on labels.",
     "browser_warning.lines.first": "Úgy tűnik, hogy ez a böngésző nem támogatja egyik kommunikációs protokollt sem",
     "browser_warning.lines.second": "Szerkesztésre továbbra is van lehetőség.",

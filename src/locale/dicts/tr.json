@@ -1,5 +1,10 @@
 {
     "lang.name": "Türkçe",
+    "main.menu": "Menü",
+    "main.language": "Dil",
+    "connector.connect": "Bağlan",
+    "connector.connecting": "Bağlanıyor…",
+    "connector.disconnect": "Bağlantıyı kes",
     "browser_warning.fingerprinting": "Dikkat! Tarayıcınız parmak izi koruması için tuvali bozuyor gibi görünüyor. Lütfen bu korumayı devre dışı bırakın, etiketlerde bozulmalara neden olabilir.",
     "browser_warning.lines.first": "Maalesef tarayıcınız Bluetooth ve seri iletişimi desteklemiyor",
     "browser_warning.lines.second": "Yine de etiket tasarlayabilirsiniz.",

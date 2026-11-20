@@ -1,5 +1,10 @@
 {
     "lang.name": "Deutsch",
+    "main.menu": "Menü",
+    "main.language": "Sprache",
+    "connector.connect": "Verbinden",
+    "connector.connecting": "Verbinde…",
+    "connector.disconnect": "Trennen",
     "browser_warning.lines.first": "Oh nein, Dein Browser unterstützt kein Bluetooth und keine serielle Schnittstelle",
     "browser_warning.lines.second": "Du kannst trotzdem Etiketten erstellen.",
     "connector.bluetooth": "Bluetooth",

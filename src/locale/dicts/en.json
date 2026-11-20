@@ -1,5 +1,10 @@
 {
     "lang.name": "English",
+    "main.menu": "Menu",
+    "main.language": "Language",
+    "connector.connect": "Connect",
+    "connector.connecting": "Connecting…",
+    "connector.disconnect": "Disconnect",
     "browser_warning.fingerprinting": "Whoa! It looks like your browser is distorting the canvas to protect against fingerprinting. Please disable this protection, as it can cause artifacts on labels.",
     "browser_warning.lines.first": "Oh no, your browser does not support bluetooth and serial communications",
     "browser_warning.lines.second": "Anyway, you still can draw labels.",

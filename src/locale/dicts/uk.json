@@ -1,5 +1,10 @@
 {
     "lang.name": "Українська",
+    "main.menu": "Меню",
+    "main.language": "Мова",
+    "connector.connect": "Підключити",
+    "connector.connecting": "Підключення…",
+    "connector.disconnect": "Відключити",
     "browser_warning.fingerprinting": "Ого! Схоже, ваш браузер спотворює полотно для боротьби з цифровими відбитками. Вимкніть цей захист, оскільки він може спричинити артефакти на етикетках.",
     "browser_warning.lines.first": "О ні, ваш браузер не підтримує Bluetooth і послідовний порт",
     "browser_warning.lines.second": "У будь-якому разі ви можете створювати етикетки.",

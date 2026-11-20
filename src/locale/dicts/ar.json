@@ -1,5 +1,10 @@
 {
     "lang.name": "العربية",
+    "main.menu": "القائمة",
+    "main.language": "اللغة",
+    "connector.connect": "اتصال",
+    "connector.connecting": "جارٍ الاتصال…",
+    "connector.disconnect": "قطع الاتصال",
     "browser_warning.fingerprinting": "تنبيه! يبدو أن متصفحك يُشوّه مساحة الرسم للحماية من تتبع بصمة المتصفح. يُرجى تعطيل هذه الحماية، لأنها قد تُسبب تشوهات في الملصقات.",
     "browser_warning.lines.first": "عذراً، متصفحك لا يدعم اتصالات البلوتوث والاتصالات التسلسلية",
     "browser_warning.lines.second": "على أي حال، لا زال بإمكانك رسم ملصقات.",

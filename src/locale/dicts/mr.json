@@ -1,5 +1,10 @@
 {
     "lang.name": "मराठी",
+    "main.menu": "मेनू",
+    "main.language": "भाषा",
+    "connector.connect": "कनेक्ट करा",
+    "connector.connecting": "कनेक्ट होत आहे…",
+    "connector.disconnect": "डिस्कनेक्ट करा",
     "browser_warning.fingerprinting": "अरे! असे दिसत आहे की तुमचा ब्राउझर फिंगरप्रिंटिंगपासून संरक्षण करण्यासाठी कॅनव्हासमध्ये बदल करत आहे. कृपया हे संरक्षण बंद करा, कारण यामुळे लेबलवर त्रुटी निर्माण होऊ शकतात.",
     "browser_warning.lines.first": "अरे नाही, तुमचा ब्राउझर ब्लूटूथ आणि सिरीयल संप्रेषणाला समर्थन देत नाही",
     "browser_warning.lines.second": "तरीही, तुम्ही लेबल तयार करू शकता.",

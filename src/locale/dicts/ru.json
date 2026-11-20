@@ -1,5 +1,10 @@
 {
     "lang.name": "Русский",
+    "main.menu": "Меню",
+    "main.language": "Язык",
+    "connector.connect": "Подключить",
+    "connector.connecting": "Подключение…",
+    "connector.disconnect": "Отключить",
     "browser_warning.fingerprinting": "Воу! Похоже, что ваш браузер искажает холст для борьбы с цифровыми отпечатками. Отключите эту защиту, так как она может вызвать артефакты на этикетках.",
     "browser_warning.lines.first": "О нет, ваш браузер не поддерживает Bluetooth и последовательный порт",
     "browser_warning.lines.second": "В любом случае, вы можете рисовать этикетки.",

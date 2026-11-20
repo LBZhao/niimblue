@@ -1,5 +1,10 @@
 {
     "lang.name": "Čeština",
+    "main.menu": "Nabídka",
+    "main.language": "Jazyk",
+    "connector.connect": "Připojit",
+    "connector.connecting": "Připojování…",
+    "connector.disconnect": "Odpojit",
     "browser_warning.lines.first": "Aj, váš prohlížeč nepodporuje bluetooth a sériovou komunikaci",
     "browser_warning.lines.second": "I tak můžete upravovat štítky.",
     "connector.bluetooth": "Bluetooth",

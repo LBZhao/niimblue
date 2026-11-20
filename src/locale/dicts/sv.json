@@ -1,5 +1,10 @@
 {
     "lang.name": "Svenska",
+    "main.menu": "Meny",
+    "main.language": "Språk",
+    "connector.connect": "Anslut",
+    "connector.connecting": "Ansluter…",
+    "connector.disconnect": "Koppla från",
     "browser_warning.fingerprinting": "Wow! Det ser ut som att din webbläsare förvränger arbetsytan för att skydda mot fingerprinting. Vänligen inaktivera detta skydd, eftersom det kan orsaka fel på etiketterna.",
     "browser_warning.lines.first": "Åh nej, din webbläsare stöder inte Bluetooth eller seriell kommunikation",
     "browser_warning.lines.second": "Hur som helst, du kan fortfarande skapa etiketter.",

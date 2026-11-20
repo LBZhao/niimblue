@@ -1,5 +1,10 @@
 {
     "lang.name": "Italiano",
+    "main.menu": "Menu",
+    "main.language": "Lingua",
+    "connector.connect": "Connetti",
+    "connector.connecting": "Connessione…",
+    "connector.disconnect": "Disconnetti",
     "browser_warning.lines.first": "Oh no, il tuo browser non supporta le comunicazioni Bluetooth e seriali",
     "browser_warning.lines.second": "Comunque, puoi disegnare etichette.",
     "connector.bluetooth": "Bluetooth",

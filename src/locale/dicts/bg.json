@@ -1,5 +1,10 @@
 {
     "lang.name": "Български",
+    "main.menu": "Меню",
+    "main.language": "Език",
+    "connector.connect": "Свързване",
+    "connector.connecting": "Свързване…",
+    "connector.disconnect": "Прекъсване",
     "browser_warning.fingerprinting": "Опа! Изглежда, че браузърът ви изкривява платното, за да се предпази от отпечатване. Моля, деактивирайте тази защита, тъй като тя може да причини артефакти върху етикетите.",
     "browser_warning.lines.first": "О, не, Вашият браузър не поддържа Bluetooth и серийни комуникации",
     "browser_warning.lines.second": "Все още можеш да рисуваш етикети.",

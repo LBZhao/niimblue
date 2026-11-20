@@ -1,5 +1,10 @@
 {
     "lang.name": "한국어",
+    "main.menu": "메뉴",
+    "main.language": "언어",
+    "connector.connect": "연결",
+    "connector.connecting": "연결 중…",
+    "connector.disconnect": "연결 해제",
     "browser_warning.fingerprinting": "브라우저가 지문 추적을 방지하기 위해 캔버스를 왜곡하고 있는 것 같습니다. 이 보호 기능을 해제하세요. 그렇지 않으면 라벨에 이상한 자국이 생길 수 있습니다.",
     "browser_warning.lines.first": "앗, 브라우저가 블루투스 및 USB(시리얼) 통신을 지원하지 않습니다.",
     "browser_warning.lines.second": "어쨌든 라벨을 계속 그릴 수 있습니다.",
