@@ -355,6 +355,65 @@ describe("new label", () => {
   });
 });
 
+describe("heading first line", () => {
+  const isBold = (box: TextboxExt, line: number) =>
+    box.styles[line] !== undefined && Object.values(box.styles[line]).every((c) => c.fontWeight === "bold");
+
+  it("makes the first line bold and larger on a split label with more than one line", () => {
+    const main = role(editor(SPLIT, "10x TE\n10 mM Tris pH 7.5"), "primary")!;
+    expect(isBold(main, 0)).toBe(true);
+    expect(Object.keys(main.styles[0]).length).toBe("10x TE".length);
+    expect(main.styles[0][0].fontSize).toBe(Math.round(main.fontSize * 1.2));
+    expect(main.styles[1]).toBeUndefined();
+  });
+
+  it("keeps even the larger first line within the one-third cap", () => {
+    const main = role(editor(SPLIT, "Hi\nyo"), "primary")!;
+    expect(main.styles[0][0].fontSize).toBeLessThanOrEqual(Math.floor(SPLIT.size.height / 3) + 1);
+  });
+
+  it("does not shrink a single line on a split label", () => {
+    expect(role(editor(SPLIT, "Hi"), "primary")!.fontSize).toBe(Math.floor(SPLIT.size.height / 3));
+  });
+
+  it("keeps the larger heading and the other lines above the date", () => {
+    const canvas = editor(SPLIT, "10x TE\n10 mM Tris pH 7.5\n0.1 mM EDTA");
+    expect(edges(role(canvas, "primary")!).bottom).toBeLessThanOrEqual(edges(role(canvas, "date")!).top + 1);
+  });
+
+  it("leaves a single line regular", () => {
+    expect(role(editor(SPLIT, "10x TE"), "primary")!.styles).toEqual({});
+  });
+
+  it("leaves labels that are not split alone", () => {
+    expect(role(editor(PLAIN_50x15, "10x TE\n10 mM Tris"), "primary")!.styles).toEqual({});
+  });
+
+  it("follows typing: a new line turns the first line bold, removing it turns it back", () => {
+    const canvas = editor(SPLIT, "PBS");
+    const main = role(canvas, "primary")!;
+    main.enterEditing();
+    type(main, "PBS\npH 7.4");
+    expect(isBold(main, 0)).toBe(true);
+    type(main, "PBS");
+    expect(main.styles).toEqual({});
+    main.exitEditing();
+  });
+
+  it("keeps the bold line inside the piece", () => {
+    const main = role(editor(SPLIT, "Tetramethylethylenediamine\n10 mM"), "primary")!;
+    const center = main.getCenterPoint().x;
+    const half = main.calcTextWidth() / 2;
+    expect(center - half).toBeGreaterThanOrEqual(EDGE_MARGIN - 0.5);
+    expect(center + half).toBeLessThanOrEqual(SPLIT.splitSizeA! - EDGE_MARGIN + 0.5);
+  });
+
+  it("prints bold", async () => {
+    const out = await printed(SPLIT, editor(SPLIT, "10x TE\n10 mM Tris"));
+    expect(isBold(role(out, "primary")!, 0)).toBe(true);
+  });
+});
+
 describe("editor view", () => {
   it("shows the real gap between split pieces, empty, with no dashed line", () => {
     const canvas = editor(SPLIT, "Text");

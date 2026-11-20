@@ -10,6 +10,23 @@ export type TextArea = {
   height: number;
   /** Largest font allowed, even if a bigger one would fit. */
   maxFontSize?: number;
+  /** Set to make the first of several lines a heading: bold and this many times the font size. */
+  firstLineScale?: number;
+};
+
+type CharStyles = Record<number, Record<number, { fontWeight: string; fontSize: number }>>;
+
+/**
+ * Per-character styles for a heading first line: bold and `scale` times `fontSize`.
+ * Empty when there is no scale or only one line, which also clears an earlier heading.
+ */
+export const firstLineStyles = (box: TextboxExt, text: string, fontSize: number, scale?: number): CharStyles => {
+  const lines = text.split("\n");
+  if (!scale || lines.length < 2) return {};
+  const chars = box.graphemeSplit(lines[0]);
+  if (chars.length === 0) return {};
+  const style = { fontWeight: "bold", fontSize: Math.round(fontSize * scale) };
+  return { 0: Object.fromEntries(chars.map((_, i) => [i, { ...style }])) };
 };
 
 /** Date formats offered in label properties. The first is the default. */
@@ -124,8 +141,12 @@ const applyCommon = (box: TextboxExt, fontSize: number, width: number) => {
 export const placeFittedText = (box: TextboxExt, text: string, area: TextArea): void => {
   const maxWidth = Math.max(1, area.width);
   const maxHeight = Math.max(1, area.height);
-  largestFont(Math.min(maxHeight, area.maxFontSize ?? Infinity), (fontSize) => {
+  // With a heading line, that line is the largest text, so the cap applies to it.
+  const headingScale = area.firstLineScale && text.includes("\n") ? area.firstLineScale : 1;
+  const cap = (area.maxFontSize ?? Infinity) / headingScale;
+  largestFont(Math.min(maxHeight, cap), (fontSize) => {
     if (box.text !== text) box.set({ text });
+    box.set({ styles: firstLineStyles(box, text, fontSize, area.firstLineScale) });
     applyCommon(box, fontSize, maxWidth);
     if (box.dynamicMinWidth > maxWidth + 0.5) return false;
     return box.height <= maxHeight + 0.5;

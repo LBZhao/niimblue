@@ -8,6 +8,7 @@ import {
   firstLine,
   newlineCount,
   placeCircleText,
+  firstLineStyles,
   placeFittedText,
   secondaryText,
   sizeDateText,
@@ -16,6 +17,9 @@ import {
 
 /** Blank pixels kept between the fitted text and date and each edge of the piece, so printing never clips them. */
 export const EDGE_MARGIN = 3;
+
+/** On a split label, the first of several main-text lines is a bold heading this much larger. */
+const HEADING_SCALE = 1.2;
 
 /** Fitted text never grows past this share of its piece's height, however short it is. */
 const MAX_FONT_SHARE = 1 / 3;
@@ -232,7 +236,7 @@ export class ManagedText {
       }
     }
     if (!box) box = this.createRole("primary", this.canvas.defaultLabelText);
-    placeFittedText(box, box.text ?? "", this.textArea(frames.primary, true, frames.textLimitY));
+    placeFittedText(box, box.text ?? "", this.primaryArea(frames));
     box.lastLayoutText = box.text;
   }
 
@@ -254,6 +258,14 @@ export class ManagedText {
     box.lastLayoutText = box.text;
   }
 
+  /** Where the main text goes. On a split label, the first of several lines becomes a heading. */
+  private primaryArea(frames: Frames): TextArea {
+    return {
+      ...this.textArea(frames.primary, true, frames.textLimitY),
+      firstLineScale: frames.secondary ? HEADING_SCALE : undefined,
+    };
+  }
+
   /**
    * Keep the main box at the piece width so words wrap before Enter.
    * Typing keeps the font unless a wrapped word would run into the date.
@@ -261,7 +273,7 @@ export class ManagedText {
    */
   private lockPrimaryWrap(box: TextboxExt, prevText: string) {
     const frames = this.frames(this.findRole("date")?.height ?? 0);
-    const area = this.textArea(frames.primary, true, frames.textLimitY);
+    const area = this.primaryArea(frames);
     const pieceWidth = Math.max(1, area.width);
     const shorter = (box.text ?? "").length < prevText.length;
     const canvas = this.canvas;
@@ -280,6 +292,7 @@ export class ManagedText {
       });
       box.dynamicMinWidth = 0;
       box.width = pieceWidth;
+      box.set({ styles: firstLineStyles(box, box.text ?? "", box.fontSize, area.firstLineScale) });
       box.initDimensions();
       const overflows = box.height > area.height + 0.5 || box.dynamicMinWidth > pieceWidth + 0.5;
       if (overflows || shorter) {
