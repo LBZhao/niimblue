@@ -1,5 +1,9 @@
 {
     "lang.name": "हिंदी",
+    "params.label.section.presets": "प्रीसेट",
+    "params.label.section.size": "आकार और दिशा",
+    "params.label.section.shape": "आकृति",
+    "params.label.section.print": "प्रिंट और तारीख",
     "editor.tab.text": "टेक्स्ट",
     "editor.tab.font": "फ़ॉन्ट",
     "editor.tab.style": "शैली",

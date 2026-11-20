@@ -1,5 +1,9 @@
 {
     "lang.name": "Deutsch",
+    "params.label.section.presets": "Vorlagen",
+    "params.label.section.size": "Größe und Richtung",
+    "params.label.section.shape": "Form",
+    "params.label.section.print": "Druck und Datum",
     "editor.tab.text": "Text",
     "editor.tab.font": "Schrift",
     "editor.tab.style": "Stil",

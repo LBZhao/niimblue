@@ -1,5 +1,9 @@
 {
     "lang.name": "العربية",
+    "params.label.section.presets": "القوالب",
+    "params.label.section.size": "الحجم والاتجاه",
+    "params.label.section.shape": "الشكل",
+    "params.label.section.print": "الطباعة والتاريخ",
     "editor.tab.text": "النص",
     "editor.tab.font": "الخط",
     "editor.tab.style": "النمط",

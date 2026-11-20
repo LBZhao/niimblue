@@ -570,7 +570,8 @@
     {/if}
   </div>
 
-  {#snippet footer()}
+  <!-- Settings scroll with the preview; the buttons below stay in reach. -->
+  <div class="preview-settings">
     {#each warnings as line (line)}
         <span class="text-warning w-100">{line}</span>
     {/each}
@@ -973,7 +974,9 @@
     <div class="form-text w-100 text-end mt-0">
       px · ≈ {offsetMm(params.offset.x)} mm ↔ · {offsetMm(params.offset.y)} mm ↕
     </div>
+  </div>
 
+  {#snippet footer()}
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{$tr("preview.close")}</button>
 
     {#if printState !== "idle"}
@@ -1009,6 +1012,15 @@
   canvas.preview-display.printer-dots {
     image-rendering: pixelated;
   }
+  .preview-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--app-border);
+  }
+
   .progress-bar {
     transition: none;
   }

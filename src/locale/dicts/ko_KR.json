@@ -1,5 +1,9 @@
 {
     "lang.name": "한국어",
+    "params.label.section.presets": "프리셋",
+    "params.label.section.size": "크기와 방향",
+    "params.label.section.shape": "모양",
+    "params.label.section.print": "인쇄 및 날짜",
     "editor.tab.text": "텍스트",
     "editor.tab.font": "글꼴",
     "editor.tab.style": "스타일",

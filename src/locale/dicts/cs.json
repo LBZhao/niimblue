@@ -1,5 +1,9 @@
 {
     "lang.name": "Čeština",
+    "params.label.section.presets": "Předvolby",
+    "params.label.section.size": "Velikost a směr",
+    "params.label.section.shape": "Tvar",
+    "params.label.section.print": "Tisk a datum",
     "editor.tab.text": "Text",
     "editor.tab.font": "Písmo",
     "editor.tab.style": "Styl",

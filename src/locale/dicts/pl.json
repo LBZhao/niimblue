@@ -1,5 +1,9 @@
 {
     "lang.name": "Polski",
+    "params.label.section.presets": "Szablony",
+    "params.label.section.size": "Rozmiar i kierunek",
+    "params.label.section.shape": "Kształt",
+    "params.label.section.print": "Druk i data",
     "editor.tab.text": "Tekst",
     "editor.tab.font": "Czcionka",
     "editor.tab.style": "Styl",

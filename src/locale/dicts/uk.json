@@ -1,5 +1,9 @@
 {
     "lang.name": "Українська",
+    "params.label.section.presets": "Шаблони",
+    "params.label.section.size": "Розмір і напрямок",
+    "params.label.section.shape": "Форма",
+    "params.label.section.print": "Друк і дата",
     "editor.tab.text": "Текст",
     "editor.tab.font": "Шрифт",
     "editor.tab.style": "Стиль",

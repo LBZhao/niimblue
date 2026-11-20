@@ -1,5 +1,9 @@
 {
     "lang.name": "简体中文",
+    "params.label.section.presets": "预设",
+    "params.label.section.size": "尺寸和方向",
+    "params.label.section.shape": "形状",
+    "params.label.section.print": "打印和日期",
     "editor.tab.text": "文字",
     "editor.tab.font": "字体",
     "editor.tab.style": "样式",

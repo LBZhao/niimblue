@@ -1,5 +1,9 @@
 {
     "lang.name": "मराठी",
+    "params.label.section.presets": "प्रीसेट",
+    "params.label.section.size": "आकार आणि दिशा",
+    "params.label.section.shape": "आकृती",
+    "params.label.section.print": "छपाई आणि तारीख",
     "editor.tab.text": "मजकूर",
     "editor.tab.font": "फॉन्ट",
     "editor.tab.style": "शैली",

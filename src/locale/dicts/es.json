@@ -1,5 +1,9 @@
 {
     "lang.name": "Español",
+    "params.label.section.presets": "Plantillas",
+    "params.label.section.size": "Tamaño y dirección",
+    "params.label.section.shape": "Forma",
+    "params.label.section.print": "Impresión y fecha",
     "editor.tab.text": "Texto",
     "editor.tab.font": "Fuente",
     "editor.tab.style": "Estilo",

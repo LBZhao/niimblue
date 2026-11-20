@@ -520,6 +520,7 @@
     <div class="mb-1 text-warning">{line}</div>
   {/each}
 
+  <h2 class="section-title">{$tr("params.label.section.presets")}</h2>
   <LabelPresetsBrowser
     class="mb-1"
     presets={labelPresets}
@@ -528,6 +529,7 @@
     onItemDelete={onLabelPresetDelete}
     onItemExport={onLabelPresetExport} />
 
+  <h2 class="section-title">{$tr("params.label.section.size")}</h2>
   <div class="input-group flex-nowrap input-group-sm mb-2">
     <span class="input-group-text">{$tr("params.label.size")}</span>
     <input class="form-control" type="number" min="1" step={unit === "px" ? 8 : 1} bind:value={width} />
@@ -560,6 +562,7 @@
     {/each}
   </div>
 
+  <h2 class="section-title">{$tr("params.label.section.shape")}</h2>
   <div class="input-group flex-nowrap input-group-sm label-split-switch mb-2" role="group">
     <span class="input-group-text w-100">{$tr("params.label.split")}</span>
     {#each labelSplits as v (v)}
@@ -663,6 +666,7 @@
     </div>
   {/if}
 
+  <h2 class="section-title">{$tr("params.label.section.print")}</h2>
   <div class="input-group input-group-sm mb-2">
     <span class="input-group-text">{$tr("preview.offset")}</span>
     <span class="input-group-text"><MdIcon icon="unfold_more" class="r-90" /></span>
@@ -715,6 +719,15 @@
 </AppModal>
 
 <style>
+  .section-title {
+    margin: 1.25rem 0 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+  }
+
   .svg-icon {
     height: 1.5em;
     width: 1.5em;

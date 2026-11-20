@@ -1,5 +1,9 @@
 {
     "lang.name": "Italiano",
+    "params.label.section.presets": "Modelli",
+    "params.label.section.size": "Dimensioni e direzione",
+    "params.label.section.shape": "Forma",
+    "params.label.section.print": "Stampa e data",
     "editor.tab.text": "Testo",
     "editor.tab.font": "Carattere",
     "editor.tab.style": "Stile",

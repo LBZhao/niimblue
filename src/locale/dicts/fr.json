@@ -1,5 +1,9 @@
 {
     "lang.name": "Français",
+    "params.label.section.presets": "Modèles",
+    "params.label.section.size": "Taille et sens",
+    "params.label.section.shape": "Forme",
+    "params.label.section.print": "Impression et date",
     "editor.tab.text": "Texte",
     "editor.tab.font": "Police",
     "editor.tab.style": "Style",

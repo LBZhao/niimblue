@@ -1,5 +1,9 @@
 {
     "lang.name": "English",
+    "params.label.section.presets": "Presets",
+    "params.label.section.size": "Size and direction",
+    "params.label.section.shape": "Shape",
+    "params.label.section.print": "Printing and date",
     "editor.tab.text": "Text",
     "editor.tab.font": "Font",
     "editor.tab.style": "Style",

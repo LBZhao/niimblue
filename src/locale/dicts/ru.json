@@ -1,5 +1,9 @@
 {
     "lang.name": "Русский",
+    "params.label.section.presets": "Шаблоны",
+    "params.label.section.size": "Размер и направление",
+    "params.label.section.shape": "Форма",
+    "params.label.section.print": "Печать и дата",
     "editor.tab.text": "Текст",
     "editor.tab.font": "Шрифт",
     "editor.tab.style": "Стиль",

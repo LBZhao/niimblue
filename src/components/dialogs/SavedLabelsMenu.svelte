@@ -353,6 +353,7 @@
         type="button"
         class="btn btn-outline-secondary dropdown-toggle"
         data-bs-toggle="dropdown"
+        data-bs-popper-config={'{"strategy":"fixed"}'}
         aria-expanded="false">
         <MdIcon icon="data_object" />
         {$tr("params.saved_labels.save.json")}

@@ -94,7 +94,8 @@
   class:modal-xl={size === "xl"}
   tabindex="-1"
   aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <!-- Scrollable: the header and the buttons stay put while a long dialog scrolls. -->
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h1 class="modal-title fs-5">{title}</h1>

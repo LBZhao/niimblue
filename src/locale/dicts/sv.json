@@ -1,5 +1,9 @@
 {
     "lang.name": "Svenska",
+    "params.label.section.presets": "Mallar",
+    "params.label.section.size": "Storlek och riktning",
+    "params.label.section.shape": "Form",
+    "params.label.section.print": "Utskrift och datum",
     "editor.tab.text": "Text",
     "editor.tab.font": "Typsnitt",
     "editor.tab.style": "Stil",

@@ -1,5 +1,9 @@
 {
     "lang.name": "Magyar",
+    "params.label.section.presets": "Sablonok",
+    "params.label.section.size": "Méret és irány",
+    "params.label.section.shape": "Forma",
+    "params.label.section.print": "Nyomtatás és dátum",
     "editor.tab.text": "Szöveg",
     "editor.tab.font": "Betűtípus",
     "editor.tab.style": "Stílus",

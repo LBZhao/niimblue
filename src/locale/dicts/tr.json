@@ -1,5 +1,9 @@
 {
     "lang.name": "Türkçe",
+    "params.label.section.presets": "Şablonlar",
+    "params.label.section.size": "Boyut ve yön",
+    "params.label.section.shape": "Şekil",
+    "params.label.section.print": "Yazdırma ve tarih",
     "editor.tab.text": "Metin",
     "editor.tab.font": "Yazı tipi",
     "editor.tab.style": "Stil",
