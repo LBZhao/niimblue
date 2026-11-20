@@ -1,5 +1,9 @@
 {
     "lang.name": "English",
+    "editor.tab.text": "Text",
+    "editor.tab.font": "Font",
+    "editor.tab.style": "Style",
+    "editor.tab.arrange": "Arrange",
     "main.menu": "Menu",
     "main.language": "Language",
     "connector.connect": "Connect",

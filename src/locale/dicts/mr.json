@@ -1,5 +1,9 @@
 {
     "lang.name": "मराठी",
+    "editor.tab.text": "मजकूर",
+    "editor.tab.font": "फॉन्ट",
+    "editor.tab.style": "शैली",
+    "editor.tab.arrange": "मांडणी",
     "main.menu": "मेनू",
     "main.language": "भाषा",
     "connector.connect": "कनेक्ट करा",

@@ -1,5 +1,9 @@
 {
     "lang.name": "한국어",
+    "editor.tab.text": "텍스트",
+    "editor.tab.font": "글꼴",
+    "editor.tab.style": "스타일",
+    "editor.tab.arrange": "정렬",
     "main.menu": "메뉴",
     "main.language": "언어",
     "connector.connect": "연결",

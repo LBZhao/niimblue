@@ -1,5 +1,9 @@
 {
     "lang.name": "Hrvatski",
+    "editor.tab.text": "Tekst",
+    "editor.tab.font": "Font",
+    "editor.tab.style": "Stil",
+    "editor.tab.arrange": "Raspored",
     "main.menu": "Izbornik",
     "main.language": "Jezik",
     "connector.connect": "Poveži",

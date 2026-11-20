@@ -1,5 +1,9 @@
 {
     "lang.name": "Italiano",
+    "editor.tab.text": "Testo",
+    "editor.tab.font": "Carattere",
+    "editor.tab.style": "Stile",
+    "editor.tab.arrange": "Disponi",
     "main.menu": "Menu",
     "main.language": "Lingua",
     "connector.connect": "Connetti",

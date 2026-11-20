@@ -13,9 +13,11 @@
     valueUpdated: () => void;
     /** Extra controls for the Content group, next to "Edit text" (the variables menu). */
     content?: Snippet;
+    /** Which tab of the editor panel: content, alignment and style, or font and size. Both when left out. */
+    section?: "text" | "font";
   }
 
-  let { selectedText, editRevision, valueUpdated, content }: Props = $props();
+  let { selectedText, editRevision, valueUpdated, content, section }: Props = $props();
 
   let sizeMin: number = 1;
   let sizeMax: number = 999;
@@ -134,6 +136,13 @@
 <!-- Fix component not updating when selectedText changes. I didn't find a better way to do this. -->
 <input type="hidden" value={editRevision}>
 
+{#if section !== "font"}
+<div class="tool-group" role="group" aria-label="Content">
+<button class="btn btn-sm btn-secondary" onclick={editInPopup} title={$tr("params.text.edit")}>
+  <MdIcon icon="edit" />
+</button>
+{@render content?.()}
+</div>
 <div class="tool-group" role="group" aria-label="Alignment">
 <button
   title={$tr("params.text.align.left")}
@@ -258,6 +267,12 @@
 
 
 </div>
+{/if}
+
+{#if section !== "text"}
+<div class="tool-group" role="group" aria-label="Font">
+<FontFamilyPicker {editRevision} value={selectedText.fontFamily} valueUpdated={updateFontFamily} />
+</div>
 <div class="tool-group" role="group" aria-label="Size">
 <div class="input-group flex-nowrap input-group-sm font-size">
   <span class="input-group-text" title={$tr("params.text.font_size")}><MdIcon icon="format_size" /></span>
@@ -304,15 +319,7 @@
 </div>
 
 </div>
-<div class="tool-group" role="group" aria-label="Font">
-<FontFamilyPicker {editRevision} value={selectedText.fontFamily} valueUpdated={updateFontFamily} />
-</div>
-<div class="tool-group" role="group" aria-label="Content">
-<button class="btn btn-sm btn-secondary" onclick={editInPopup} title={$tr("params.text.edit")}>
-  <MdIcon icon="edit" />
-</button>
-{@render content?.()}
-</div>
+{/if}
 
 <style>
   .input-group {

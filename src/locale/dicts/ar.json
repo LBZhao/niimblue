@@ -1,5 +1,9 @@
 {
     "lang.name": "العربية",
+    "editor.tab.text": "النص",
+    "editor.tab.font": "الخط",
+    "editor.tab.style": "النمط",
+    "editor.tab.arrange": "الترتيب",
     "main.menu": "القائمة",
     "main.language": "اللغة",
     "connector.connect": "اتصال",

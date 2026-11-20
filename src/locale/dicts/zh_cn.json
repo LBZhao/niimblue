@@ -1,5 +1,9 @@
 {
     "lang.name": "简体中文",
+    "editor.tab.text": "文字",
+    "editor.tab.font": "字体",
+    "editor.tab.style": "样式",
+    "editor.tab.arrange": "排列",
     "main.menu": "菜单",
     "main.language": "语言",
     "connector.connect": "连接",

@@ -1,5 +1,9 @@
 {
     "lang.name": "Русский",
+    "editor.tab.text": "Текст",
+    "editor.tab.font": "Шрифт",
+    "editor.tab.style": "Стиль",
+    "editor.tab.arrange": "Расположение",
     "main.menu": "Меню",
     "main.language": "Язык",
     "connector.connect": "Подключить",

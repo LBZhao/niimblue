@@ -1,5 +1,9 @@
 {
     "lang.name": "Čeština",
+    "editor.tab.text": "Text",
+    "editor.tab.font": "Písmo",
+    "editor.tab.style": "Styl",
+    "editor.tab.arrange": "Uspořádat",
     "main.menu": "Nabídka",
     "main.language": "Jazyk",
     "connector.connect": "Připojit",

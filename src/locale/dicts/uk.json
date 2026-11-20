@@ -1,5 +1,9 @@
 {
     "lang.name": "Українська",
+    "editor.tab.text": "Текст",
+    "editor.tab.font": "Шрифт",
+    "editor.tab.style": "Стиль",
+    "editor.tab.arrange": "Розташування",
     "main.menu": "Меню",
     "main.language": "Мова",
     "connector.connect": "Підключити",

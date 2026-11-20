@@ -1,5 +1,9 @@
 {
     "lang.name": "Svenska",
+    "editor.tab.text": "Text",
+    "editor.tab.font": "Typsnitt",
+    "editor.tab.style": "Stil",
+    "editor.tab.arrange": "Ordna",
     "main.menu": "Meny",
     "main.language": "Språk",
     "connector.connect": "Anslut",

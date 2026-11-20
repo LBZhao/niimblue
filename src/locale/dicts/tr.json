@@ -1,5 +1,9 @@
 {
     "lang.name": "Türkçe",
+    "editor.tab.text": "Metin",
+    "editor.tab.font": "Yazı tipi",
+    "editor.tab.style": "Stil",
+    "editor.tab.arrange": "Düzenle",
     "main.menu": "Menü",
     "main.language": "Dil",
     "connector.connect": "Bağlan",

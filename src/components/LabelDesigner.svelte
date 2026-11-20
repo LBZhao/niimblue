@@ -66,6 +66,8 @@
   let selectedObject = $state<fabric.FabricObject | undefined>(undefined);
   let selectedCount = $state<number>(0);
   let editRevision = $state<number>(0);
+  /** The tab picked in the selection panel; kept while it fits what is selected. */
+  let propsTab = $state<PropsTabId>("text");
   let printNow = $state<boolean>(false);
   let csvEnabled = $state<boolean>(false);
   let windowWidth = $state<number>(0);
@@ -74,6 +76,42 @@
   let hasUnsavedChanges = $state<boolean>(false);
 
   const undo = new UndoRedo();
+
+  type PropsTabId = "text" | "font" | "style" | "object" | "arrange";
+
+  const isShape = (o?: fabric.FabricObject) =>
+    o instanceof fabric.Rect || o instanceof fabric.Circle || o instanceof fabric.Line || o instanceof fabric.Polyline;
+
+  /** Tabs for what is selected, most used first. Nothing for several objects at once. */
+  let propsTabs = $derived.by<{ id: PropsTabId; label: string }[]>(() => {
+    if (!selectedObject || selectedCount !== 1) return [];
+    const arrange = { id: "arrange" as const, label: $tr("editor.tab.arrange") };
+    if (selectedObject instanceof fabric.IText) {
+      return [
+        { id: "text", label: $tr("editor.tab.text") },
+        { id: "font", label: $tr("editor.tab.font") },
+        arrange,
+      ];
+    }
+    if (selectedObject instanceof QRCode) return [{ id: "object", label: $tr("editor.objectpicker.qrcode") }, arrange];
+    if (selectedObject instanceof Barcode) return [{ id: "object", label: $tr("editor.objectpicker.barcode") }, arrange];
+    if (selectedObject instanceof ArUcoMarker) return [{ id: "object", label: $tr("editor.objectpicker.aruco") }, arrange];
+    if (isShape(selectedObject)) return [{ id: "style", label: $tr("editor.tab.style") }, arrange];
+    return [arrange];
+  });
+
+  // Selecting something else starts on its main tab; the picked tab only stays for the same object.
+  let lastSelected: fabric.FabricObject | undefined;
+  $effect(() => {
+    if (selectedObject === lastSelected) return;
+    lastSelected = selectedObject;
+    propsTab = propsTabs[0]?.id ?? "text";
+  });
+
+  /** The picked tab when this selection has it, otherwise the first one. */
+  let activeTab = $derived<PropsTabId | undefined>(
+    propsTabs.some((t) => t.id === propsTab) ? propsTab : propsTabs[0]?.id,
+  );
 
   const discardSelection = () => {
     fabricCanvas!.discardActiveObject();
@@ -735,59 +773,89 @@
     </div>
   </div>
 
-  <div class="row mb-1">
-    <div class="col d-flex justify-content-center">
-      <div class="toolbar d-flex flex-wrap gap-1 justify-content-center align-items-center">
-        {#if selectedCount > 0}
-          <div class="tool-group" role="group" aria-label="Object">
-            <button class="btn btn-sm btn-secondary" onclick={cloneSelected} title={$tr("editor.clone")}>
-              <MdIcon icon="content_copy" />
-            </button>
-            <button class="btn btn-sm btn-secondary" onclick={deleteSelected} title={$tr("editor.delete")}>
-              <MdIcon icon="delete" />
-            </button>
+  {#if selectedCount > 0}
+    <!-- What is selected, in tabs: one short row of controls at a time instead of all of them at once. -->
+    <div class="row mb-2">
+      <div class="col d-flex justify-content-center">
+        <div class="props-panel">
+          <div class="props-head">
+            {#if propsTabs.length > 1}
+              <div class="props-tabs" role="tablist">
+                {#each propsTabs as t (t.id)}
+                  <button
+                    role="tab"
+                    class="props-tab"
+                    class:active={activeTab === t.id}
+                    aria-selected={activeTab === t.id}
+                    onclick={() => (propsTab = t.id)}>
+                    {t.label}
+                  </button>
+                {/each}
+              </div>
+            {:else}
+              <span class="props-title text-secondary">
+                {propsTabs[0]?.label ?? `${selectedCount} ×`}
+              </span>
+            {/if}
+            <div class="ms-auto d-flex gap-1">
+              <button class="btn btn-sm btn-outline-secondary" onclick={cloneSelected} title={$tr("editor.clone")}>
+                <MdIcon icon="content_copy" />
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" onclick={deleteSelected} title={$tr("editor.delete")}>
+                <MdIcon icon="delete" />
+              </button>
+            </div>
           </div>
-        {/if}
 
-        {#if selectedObject && selectedCount === 1}
-          <GenericObjectParamsControls {selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
-        {/if}
+          <div class="toolbar d-flex flex-wrap gap-1 justify-content-center align-items-center">
+            {#if activeTab === "arrange" && selectedObject && selectedCount === 1}
+              <GenericObjectParamsControls {selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+            {/if}
 
-        {#if selectedObject}
-          <VectorParamsControls {selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
-        {/if}
+            {#if activeTab === "style" && selectedObject}
+              <VectorParamsControls {selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+            {/if}
 
-        {#if selectedObject instanceof fabric.IText}
-          <TextParamsControls selectedText={selectedObject} {editRevision} valueUpdated={controlValueUpdated}>
-            {#snippet content()}
-              <!-- Always set here: this only renders while a text object is selected. -->
-              <VariableInsertControl selectedObject={selectedObject!} valueUpdated={controlValueUpdated} />
-            {/snippet}
-          </TextParamsControls>
-        {/if}
+            {#if (activeTab === "text" || activeTab === "font") && selectedObject instanceof fabric.IText}
+              <TextParamsControls
+                selectedText={selectedObject}
+                section={activeTab}
+                {editRevision}
+                valueUpdated={controlValueUpdated}>
+                {#snippet content()}
+                  <!-- Always set here: this only renders while a text object is selected. -->
+                  <VariableInsertControl selectedObject={selectedObject!} valueUpdated={controlValueUpdated} />
+                {/snippet}
+              </TextParamsControls>
+            {/if}
 
-        {#if selectedObject instanceof QRCode}
-          <div class="tool-group" role="group" aria-label="QR code">
-            <QrCodeParamsPanel selectedQRCode={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
-            <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
+            {#if activeTab === "object" && selectedObject instanceof QRCode}
+              <div class="tool-group" role="group" aria-label="QR code">
+                <QrCodeParamsPanel selectedQRCode={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+                <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
+              </div>
+            {/if}
+
+            {#if activeTab === "object" && selectedObject instanceof ArUcoMarker}
+              <div class="tool-group" role="group" aria-label="ArUco marker">
+                <ArUcoParamsPanel selectedArUco={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
+              </div>
+            {/if}
+
+            {#if activeTab === "object" && selectedObject instanceof Barcode}
+              <div class="tool-group" role="group" aria-label="Barcode">
+                <BarcodeParamsPanel
+                  selectedBarcode={selectedObject}
+                  {editRevision}
+                  valueUpdated={controlValueUpdated} />
+                <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
+              </div>
+            {/if}
           </div>
-        {/if}
-
-        {#if selectedObject instanceof ArUcoMarker}
-          <div class="tool-group" role="group" aria-label="ArUco marker">
-            <ArUcoParamsPanel selectedArUco={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
-          </div>
-        {/if}
-
-        {#if selectedObject instanceof Barcode}
-          <div class="tool-group" role="group" aria-label="Barcode">
-            <BarcodeParamsPanel selectedBarcode={selectedObject} {editRevision} valueUpdated={controlValueUpdated} />
-            <VariableInsertControl {selectedObject} valueUpdated={controlValueUpdated} />
-          </div>
-        {/if}
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
 
   <!-- Below the selection controls, so they stay next to the canvas. -->
   <div class="row mb-1">
@@ -851,6 +919,58 @@
   .canvas-wrapper canvas {
     image-rendering: pixelated;
     display: block;
+  }
+
+  .props-panel {
+    width: 100%;
+    max-width: 620px;
+    padding: 6px;
+    border: 1px solid var(--app-border);
+    border-radius: var(--bs-border-radius-xl);
+    background: var(--app-surface-1);
+  }
+
+  .props-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .props-title {
+    padding-left: 8px;
+  }
+
+  /* A segmented switch: the active tab is a raised pill. */
+  .props-tabs {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--app-border);
+  }
+
+  .props-tab {
+    border: 0;
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    min-height: 36px;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .props-tab.active {
+    background: var(--app-surface-3);
+    color: var(--bs-emphasis-color);
+  }
+
+  /* Inside the panel the groups need no panel of their own. */
+  .props-panel :global(.tool-group) {
+    background: transparent;
+    border-color: transparent;
   }
 
   @media (max-width: 767.98px) {

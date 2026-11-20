@@ -1,5 +1,9 @@
 {
     "lang.name": "Português (Brasil)",
+    "editor.tab.text": "Texto",
+    "editor.tab.font": "Fonte",
+    "editor.tab.style": "Estilo",
+    "editor.tab.arrange": "Organizar",
     "main.menu": "Menu",
     "main.language": "Idioma",
     "connector.connect": "Conectar",

@@ -1,5 +1,9 @@
 {
     "lang.name": "Български",
+    "editor.tab.text": "Текст",
+    "editor.tab.font": "Шрифт",
+    "editor.tab.style": "Стил",
+    "editor.tab.arrange": "Подредба",
     "main.menu": "Меню",
     "main.language": "Език",
     "connector.connect": "Свързване",

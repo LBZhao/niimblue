@@ -1,5 +1,9 @@
 {
     "lang.name": "Magyar",
+    "editor.tab.text": "Szöveg",
+    "editor.tab.font": "Betűtípus",
+    "editor.tab.style": "Stílus",
+    "editor.tab.arrange": "Elrendezés",
     "main.menu": "Menü",
     "main.language": "Nyelv",
     "connector.connect": "Csatlakozás",

@@ -1,5 +1,9 @@
 {
     "lang.name": "हिंदी",
+    "editor.tab.text": "टेक्स्ट",
+    "editor.tab.font": "फ़ॉन्ट",
+    "editor.tab.style": "शैली",
+    "editor.tab.arrange": "व्यवस्थित करें",
     "main.menu": "मेनू",
     "main.language": "भाषा",
     "connector.connect": "कनेक्ट करें",
