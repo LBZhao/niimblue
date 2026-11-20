@@ -9,7 +9,9 @@ Tested on a **NIIMBOT M2_H** (300 dpi, 36.5 × 9.5 mm split labels: a 25 mm roun
 ### What this edition changes
 
 - **Split labels with a dot**: a main piece and a second piece can each be a rectangle, rounded rectangle or circle. The main text, a copy for the dot and today's date are fitted automatically. Short names (one or two words) are stacked one word per line in the dot, and wrapped words never run into the date.
-- **Editor**: the gap between split pieces shows as a 1 mm strip with a dashed line, and the label zooms to fit the phone's screen width.
+- **Editor**: split pieces show with their real gap, and the label zooms to fit the phone's screen width. Selecting something shows one panel with tabs (Text, Font, Arrange, or the object's own settings) instead of every control at once.
+- **Quick labels**: a text field under the label edits the main text (and the dot's copy) without tapping into the small label. Each Recently printed label has a print button that prints it again with today's date.
+- **Look**: a dark blue-grey theme with one blue accent and the Atkinson Hyperlegible Next UI font. A top bar holds the printer (Connect, or a status chip with name and battery that opens its settings) and a menu with language, code and debug tools. On phones, dialogs are bottom sheets whose buttons stay put while the content scrolls.
 - **New label**: a button at the start of the toolbar starts over with just the text box and today's date, on the same paper. Undo brings the old label back.
 - **Default text**: the fitted text is capped at one third of the label's height, and the placeholder "Text" clears as soon as you start editing it (it comes back if you type nothing).
 - **Label fonts**: Barlow Semi Condensed, Roboto Condensed, IBM Plex Sans Condensed and Atkinson Hyperlegible Next are bundled for offline use. Changing the main font also updates the dot and the date.
@@ -17,6 +19,7 @@ Tested on a **NIIMBOT M2_H** (300 dpi, 36.5 × 9.5 mm split labels: a 25 mm roun
 - **Save to phone**: on Android, labels saved with a button go to `Documents/NiimBlue/Saved`, and every label printed for the first time is kept quietly in `Documents/NiimBlue/History` as `YYYYMMDD_<first line>.json`. Both survive reinstalling the app.
 - **Easier on a phone**: saved labels and label presets are shown in two columns with real-shape previews, and an Edit mode with large delete buttons and a confirmation.
 - **Fixes**: label thumbnails are drawn at the real label size, and M2 printers are detected and set to the top print direction.
+- **Up to date with NiimBlue 2026.10.0**: the original project's dialogs, grayscale and screentone printing, barcode library and printer updates are merged in, with this edition's changes kept.
 
 ### Install and build
 
