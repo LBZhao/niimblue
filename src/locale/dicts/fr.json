@@ -1,5 +1,8 @@
 {
     "lang.name": "Français",
+    "editor.quick_text": "Texte de l'étiquette",
+    "editor.quick_text.placeholder": "Saisissez le texte de l'étiquette",
+    "editor.recent_prints.reprint": "Réimprimer",
     "params.label.section.presets": "Modèles",
     "params.label.section.size": "Taille et sens",
     "params.label.section.shape": "Forme",

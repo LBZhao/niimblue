@@ -1,5 +1,8 @@
 {
     "lang.name": "Español",
+    "editor.quick_text": "Texto de la etiqueta",
+    "editor.quick_text.placeholder": "Escribe el texto de la etiqueta",
+    "editor.recent_prints.reprint": "Imprimir de nuevo",
     "params.label.section.presets": "Plantillas",
     "params.label.section.size": "Tamaño y dirección",
     "params.label.section.shape": "Forma",

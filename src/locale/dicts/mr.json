@@ -1,5 +1,8 @@
 {
     "lang.name": "मराठी",
+    "editor.quick_text": "लेबल मजकूर",
+    "editor.quick_text.placeholder": "लेबलचा मजकूर लिहा",
+    "editor.recent_prints.reprint": "पुन्हा छापा",
     "params.label.section.presets": "प्रीसेट",
     "params.label.section.size": "आकार आणि दिशा",
     "params.label.section.shape": "आकृती",

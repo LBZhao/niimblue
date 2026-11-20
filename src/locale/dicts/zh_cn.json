@@ -1,5 +1,8 @@
 {
     "lang.name": "简体中文",
+    "editor.quick_text": "标签文字",
+    "editor.quick_text.placeholder": "输入标签文字",
+    "editor.recent_prints.reprint": "再次打印",
     "params.label.section.presets": "预设",
     "params.label.section.size": "尺寸和方向",
     "params.label.section.shape": "形状",

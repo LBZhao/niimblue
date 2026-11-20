@@ -1,5 +1,8 @@
 {
     "lang.name": "Português (Brasil)",
+    "editor.quick_text": "Texto da etiqueta",
+    "editor.quick_text.placeholder": "Digite o texto da etiqueta",
+    "editor.recent_prints.reprint": "Imprimir novamente",
     "params.label.section.presets": "Modelos",
     "params.label.section.size": "Tamanho e direção",
     "params.label.section.shape": "Formato",

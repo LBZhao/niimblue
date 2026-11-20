@@ -46,6 +46,7 @@
   import { LabelDesignerUtils } from "$/utils/label_designer_utils";
   import SavedLabelsMenu from "$/components/dialogs/SavedLabelsMenu.svelte";
   import { CustomCanvas } from "$/fabric-object/custom_canvas";
+  import { TextboxExt } from "$/fabric-object/textbox-ext";
   import VectorParamsControls from "$/components/designer-controls/VectorParamsControls.svelte";
   import { CanvasUtils } from "$/utils/canvas_utils";
   import { isM2Printer } from "$/utils/print_direction";
@@ -134,6 +135,35 @@
     canvas.suspendManagedLayout = false;
     canvas.layoutManagedText();
     undo.paused = false;
+    labelRevision++;
+  };
+
+  /** The label's main text box, which fits itself to the label. */
+  const primaryBox = (): TextboxExt | undefined =>
+    fabricCanvas
+      ?.getObjects()
+      .find((o): o is TextboxExt => o instanceof TextboxExt && o.labelRole === "primary");
+
+  /** Bumped when a whole label is loaded or replaced, so the text field reads it again. */
+  let labelRevision = $state<number>(0);
+
+  /** The main text for the field under the label; empty while it is still the placeholder. */
+  let quickText = $derived.by<string | undefined>(() => {
+    void editRevision;
+    void labelRevision;
+    const box = primaryBox();
+    if (!box) return undefined;
+    return box.isPlaceholder() ? "" : box.text;
+  });
+
+  /** Typing in the field changes the label like typing on the label does; empty brings back the placeholder. */
+  const onQuickTextInput = (value: string) => {
+    const box = primaryBox();
+    if (!box || !fabricCanvas) return;
+    if (box.isEditing) box.exitEditing();
+    box.set({ text: value === "" ? fabricCanvas.defaultLabelText : value });
+    fabricCanvas.fire("text:changed", { target: box as unknown as fabric.IText });
+    fabricCanvas.requestRenderAll();
   };
 
   undo.onLabelUpdate = async (data) => {
@@ -268,6 +298,19 @@
   const loadRecentPrint = (label: ExportedLabelTemplate) => {
     discardSelection();
     onLoadRequested(label).catch((e) => Toasts.error(e));
+  };
+
+  /** Load a printed label with today's date and print it; just preview when no printer is connected. */
+  const reprintRecent = async (label: ExportedLabelTemplate) => {
+    discardSelection();
+    try {
+      await onLoadRequested(label);
+    } catch (e) {
+      Toasts.error(e);
+      return;
+    }
+    if ($connectionState === "connected") openPreviewAndPrint();
+    else openPreview();
   };
 
   const onPrinted = () => {
@@ -410,6 +453,7 @@
     canvas.resetToNewLabel();
     undo.paused = false;
     undo.push(canvas, labelProps);
+    labelRevision++;
   };
 
   const toggleGrid = () => {
@@ -499,6 +543,7 @@
       fabricCanvas.suspendManagedLayout = false;
       fabricCanvas.layoutManagedText();
       fitZoomToScreen();
+      labelRevision++;
     }
 
     window.addEventListener("hashchange", loadLabelFromUrl);
@@ -681,6 +726,22 @@
     </div>
   </div>
 
+  {#if quickText !== undefined}
+    <!-- Type the label here instead of on the small label itself. -->
+    <div class="row mb-3">
+      <div class="col d-flex justify-content-center">
+        <textarea
+          class="form-control quick-text"
+          rows={Math.min(4, Math.max(2, quickText.split("\n").length))}
+          placeholder={$tr("editor.quick_text.placeholder")}
+          aria-label={$tr("editor.quick_text")}
+          value={quickText}
+          oninput={(e) => onQuickTextInput(e.currentTarget.value)}
+          onchange={() => undo.push(fabricCanvas!, labelProps)}></textarea>
+      </div>
+    </div>
+  {/if}
+
   <div class="row mb-1">
     <div class="col d-flex justify-content-center">
       <div class="toolbar toolbar-main d-flex flex-wrap gap-1 justify-content-center align-items-center">
@@ -860,7 +921,7 @@
   <!-- Below the selection controls, so they stay next to the canvas. -->
   <div class="row mb-1">
     <div class="col d-flex justify-content-center">
-      <RecentPrints onLoad={loadRecentPrint} />
+      <RecentPrints onLoad={loadRecentPrint} onPrint={reprintRecent} />
     </div>
   </div>
 
@@ -919,6 +980,14 @@
   .canvas-wrapper canvas {
     image-rendering: pixelated;
     display: block;
+  }
+
+  .quick-text {
+    max-width: 620px;
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--app-surface-1);
+    font-size: 1.05rem;
+    resize: none;
   }
 
   .props-panel {

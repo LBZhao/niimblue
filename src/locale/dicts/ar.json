@@ -1,5 +1,8 @@
 {
     "lang.name": "العربية",
+    "editor.quick_text": "نص الملصق",
+    "editor.quick_text.placeholder": "اكتب نص الملصق",
+    "editor.recent_prints.reprint": "اطبع مرة أخرى",
     "params.label.section.presets": "القوالب",
     "params.label.section.size": "الحجم والاتجاه",
     "params.label.section.shape": "الشكل",

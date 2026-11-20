@@ -1,5 +1,8 @@
 {
     "lang.name": "Čeština",
+    "editor.quick_text": "Text štítku",
+    "editor.quick_text.placeholder": "Napište text štítku",
+    "editor.recent_prints.reprint": "Vytisknout znovu",
     "params.label.section.presets": "Předvolby",
     "params.label.section.size": "Velikost a směr",
     "params.label.section.shape": "Tvar",

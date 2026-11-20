@@ -1,5 +1,8 @@
 {
     "lang.name": "한국어",
+    "editor.quick_text": "라벨 텍스트",
+    "editor.quick_text.placeholder": "라벨 텍스트를 입력하세요",
+    "editor.recent_prints.reprint": "다시 인쇄",
     "params.label.section.presets": "프리셋",
     "params.label.section.size": "크기와 방향",
     "params.label.section.shape": "모양",

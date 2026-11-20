@@ -1,5 +1,8 @@
 {
     "lang.name": "Magyar",
+    "editor.quick_text": "Címke szövege",
+    "editor.quick_text.placeholder": "Írja be a címke szövegét",
+    "editor.recent_prints.reprint": "Nyomtatás újra",
     "params.label.section.presets": "Sablonok",
     "params.label.section.size": "Méret és irány",
     "params.label.section.shape": "Forma",

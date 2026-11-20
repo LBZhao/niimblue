@@ -1,5 +1,8 @@
 {
     "lang.name": "Türkçe",
+    "editor.quick_text": "Etiket metni",
+    "editor.quick_text.placeholder": "Etiket metnini yazın",
+    "editor.recent_prints.reprint": "Yeniden yazdır",
     "params.label.section.presets": "Şablonlar",
     "params.label.section.size": "Boyut ve yön",
     "params.label.section.shape": "Şekil",

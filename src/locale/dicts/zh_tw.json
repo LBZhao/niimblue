@@ -1,5 +1,8 @@
 {
     "lang.name": "繁體中文",
+    "editor.quick_text": "標籤文字",
+    "editor.quick_text.placeholder": "輸入標籤文字",
+    "editor.recent_prints.reprint": "再次列印",
     "params.label.section.presets": "預設",
     "params.label.section.size": "尺寸和方向",
     "params.label.section.shape": "形狀",

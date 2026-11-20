@@ -1,5 +1,8 @@
 {
     "lang.name": "Svenska",
+    "editor.quick_text": "Etikettext",
+    "editor.quick_text.placeholder": "Skriv etikettens text",
+    "editor.recent_prints.reprint": "Skriv ut igen",
     "params.label.section.presets": "Mallar",
     "params.label.section.size": "Storlek och riktning",
     "params.label.section.shape": "Form",

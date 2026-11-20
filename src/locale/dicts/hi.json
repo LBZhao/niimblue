@@ -1,5 +1,8 @@
 {
     "lang.name": "हिंदी",
+    "editor.quick_text": "लेबल टेक्स्ट",
+    "editor.quick_text.placeholder": "लेबल का टेक्स्ट लिखें",
+    "editor.recent_prints.reprint": "फिर से प्रिंट करें",
     "params.label.section.presets": "प्रीसेट",
     "params.label.section.size": "आकार और दिशा",
     "params.label.section.shape": "आकृति",

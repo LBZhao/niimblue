@@ -9,9 +9,11 @@
   interface Props {
     /** Loads the label right away, without asking. */
     onLoad: (label: ExportedLabelTemplate) => void;
+    /** Loads the label and goes straight to printing it. */
+    onPrint?: (label: ExportedLabelTemplate) => void;
   }
 
-  let { onLoad }: Props = $props();
+  let { onLoad, onPrint }: Props = $props();
 
   /** Sharp pictures already drawn, by label and pixel height. */
   const sharp = new WeakMap<ExportedLabelTemplate, { height: number; src: string }>();
@@ -68,13 +70,24 @@
     <div class="recent-list d-flex flex-column gap-1">
       {#each $recentPrints as item, idx (idx)}
         {@const name = recentPrintName(item)}
-        <button class="btn btn-outline-secondary recent-item p-1" title={name} onclick={() => onLoad(item)}>
-          {#if item.thumbnailBase64}
-            <img src={sharp.get(item)?.src ?? item.thumbnailBase64} alt={name} use:sharpen={item} />
-          {:else}
-            <span class="recent-name">{name}</span>
+        <div class="recent-row">
+          <button class="btn btn-outline-secondary recent-item p-1" title={name} onclick={() => onLoad(item)}>
+            {#if item.thumbnailBase64}
+              <img src={sharp.get(item)?.src ?? item.thumbnailBase64} alt={name} use:sharpen={item} />
+            {:else}
+              <span class="recent-name">{name}</span>
+            {/if}
+          </button>
+          {#if onPrint}
+            <button
+              class="btn btn-primary reprint"
+              title={$tr("editor.recent_prints.reprint")}
+              aria-label={$tr("editor.recent_prints.reprint")}
+              onclick={() => onPrint(item)}>
+              <MdIcon icon="print" />
+            </button>
           {/if}
-        </button>
+        </div>
       {/each}
     </div>
   </div>
@@ -93,6 +106,22 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
+  }
+
+  /* The label fills the row; the print button sits on its right edge. */
+  .recent-row {
+    position: relative;
+  }
+
+  .reprint {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
   .recent-item {

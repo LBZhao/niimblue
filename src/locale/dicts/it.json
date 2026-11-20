@@ -1,5 +1,8 @@
 {
     "lang.name": "Italiano",
+    "editor.quick_text": "Testo etichetta",
+    "editor.quick_text.placeholder": "Scrivi il testo dell'etichetta",
+    "editor.recent_prints.reprint": "Stampa di nuovo",
     "params.label.section.presets": "Modelli",
     "params.label.section.size": "Dimensioni e direzione",
     "params.label.section.shape": "Forma",

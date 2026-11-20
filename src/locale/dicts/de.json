@@ -1,5 +1,8 @@
 {
     "lang.name": "Deutsch",
+    "editor.quick_text": "Etikettentext",
+    "editor.quick_text.placeholder": "Etikettentext eingeben",
+    "editor.recent_prints.reprint": "Erneut drucken",
     "params.label.section.presets": "Vorlagen",
     "params.label.section.size": "Größe und Richtung",
     "params.label.section.shape": "Form",

@@ -1,5 +1,8 @@
 {
     "lang.name": "Български",
+    "editor.quick_text": "Текст на етикета",
+    "editor.quick_text.placeholder": "Въведете текста на етикета",
+    "editor.recent_prints.reprint": "Отпечатай отново",
     "params.label.section.presets": "Шаблони",
     "params.label.section.size": "Размер и посока",
     "params.label.section.shape": "Форма",

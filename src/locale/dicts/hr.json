@@ -1,5 +1,8 @@
 {
     "lang.name": "Hrvatski",
+    "editor.quick_text": "Tekst naljepnice",
+    "editor.quick_text.placeholder": "Upišite tekst naljepnice",
+    "editor.recent_prints.reprint": "Ispiši ponovno",
     "params.label.section.presets": "Predlošci",
     "params.label.section.size": "Veličina i smjer",
     "params.label.section.shape": "Oblik",

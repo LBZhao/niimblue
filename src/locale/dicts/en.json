@@ -1,5 +1,8 @@
 {
     "lang.name": "English",
+    "editor.quick_text": "Label text",
+    "editor.quick_text.placeholder": "Type the label text",
+    "editor.recent_prints.reprint": "Print again",
     "params.label.section.presets": "Presets",
     "params.label.section.size": "Size and direction",
     "params.label.section.shape": "Shape",

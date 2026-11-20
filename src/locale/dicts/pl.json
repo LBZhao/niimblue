@@ -1,5 +1,8 @@
 {
     "lang.name": "Polski",
+    "editor.quick_text": "Tekst etykiety",
+    "editor.quick_text.placeholder": "Wpisz tekst etykiety",
+    "editor.recent_prints.reprint": "Drukuj ponownie",
     "params.label.section.presets": "Szablony",
     "params.label.section.size": "Rozmiar i kierunek",
     "params.label.section.shape": "Kształt",

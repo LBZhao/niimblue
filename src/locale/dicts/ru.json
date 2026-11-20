@@ -1,5 +1,8 @@
 {
     "lang.name": "Русский",
+    "editor.quick_text": "Текст этикетки",
+    "editor.quick_text.placeholder": "Введите текст этикетки",
+    "editor.recent_prints.reprint": "Напечатать снова",
     "params.label.section.presets": "Шаблоны",
     "params.label.section.size": "Размер и направление",
     "params.label.section.shape": "Форма",

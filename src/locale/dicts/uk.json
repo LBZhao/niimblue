@@ -1,5 +1,8 @@
 {
     "lang.name": "Українська",
+    "editor.quick_text": "Текст етикетки",
+    "editor.quick_text.placeholder": "Введіть текст етикетки",
+    "editor.recent_prints.reprint": "Надрукувати знову",
     "params.label.section.presets": "Шаблони",
     "params.label.section.size": "Розмір і напрямок",
     "params.label.section.shape": "Форма",
